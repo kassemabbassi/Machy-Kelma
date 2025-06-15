@@ -1,8 +1,7 @@
-
 'use client';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, RotateCcw, Trophy, Clock, Target, BookOpen, Sparkles, Brain, Star } from 'lucide-react';
+import { Play, Pause, RotateCcw, Trophy, Clock, Target, BookOpen, Sparkles, Brain, Star, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import Confetti from 'react-confetti';
 
@@ -37,7 +36,95 @@ const FALLBACK_WORDS = {
   environment: ['TREE', 'OCEAN', 'EARTH', 'WIND', 'RAIN', 'SUN', 'NATURE', 'GREEN', 'CLEAN', 'PLANET', 'FOREST', 'WATER'],
 };
 
-// Enhanced Gemini Service with robust error handling
+// Fallback hints for each domain
+const FALLBACK_HINTS = {
+  technology: {
+    CODE: 'Software development process',
+    DATA: 'Information storage unit',
+    WEB: 'Internet browsing platform',
+    API: 'App communication interface',
+    TECH: 'Gadget innovation field',
+    SMART: 'Intelligent device feature',
+    LEARN: 'AI training process',
+    SYSTEM: 'Integrated software framework',
+    CLOUD: 'Online data storage',
+    NETWORK: 'Connected device web',
+    SERVER: 'Data hosting machine',
+    DATABASE: 'Structured data repository',
+  },
+  science: {
+    ATOM: 'Smallest chemical unit',
+    CELL: 'Life’s basic structure',
+    DNA: 'Genetic code molecule',
+    GENE: 'Heredity instruction segment',
+    MASS: 'Matter quantity measure',
+    ENERGY: 'Power for motion',
+    FORCE: 'Push or pull',
+    LIGHT: 'Visible electromagnetic wave',
+    SPACE: 'Cosmic exploration realm',
+    MATTER: 'Physical substance base',
+    THEORY: 'Scientific explanation model',
+    METHOD: 'Research process steps',
+  },
+  business: {
+    BRAND: 'Company identity marker',
+    SALES: 'Revenue generating activity',
+    PROFIT: 'Financial gain result',
+    MARKET: 'Customer demand space',
+    PLAN: 'Strategic business outline',
+    GOAL: 'Targeted success aim',
+    TEAM: 'Collaborative work group',
+    LEAD: 'Guide organizational direction',
+    GROWTH: 'Business expansion phase',
+    VALUE: 'Customer benefit offer',
+    TRADE: 'Goods exchange process',
+    CLIENT: 'Service recipient partner',
+  },
+  health: {
+    HEART: 'Blood circulation organ',
+    BRAIN: 'Thought processing center',
+    BLOOD: 'Vital fluid transport',
+    BONE: 'Skeletal support structure',
+    MUSCLE: 'Movement enabling tissue',
+    HEALTH: 'Well-being state goal',
+    DIET: 'Nutrition intake plan',
+    EXERCISE: 'Physical fitness activity',
+    SLEEP: 'Restorative body process',
+    WELLNESS: 'Holistic health balance',
+    IMMUNE: 'Disease defense system',
+    STRESS: 'Mental strain response',
+  },
+  education: {
+    LEARN: 'Knowledge acquisition process',
+    TEACH: 'Skill sharing act',
+    STUDY: 'Focused learning effort',
+    BOOK: 'Knowledge source material',
+    CLASS: 'Group learning session',
+    EXAM: 'Knowledge assessment test',
+    SKILL: 'Practical ability gained',
+    KNOW: 'Understand information deeply',
+    MIND: 'Cognitive thinking faculty',
+    THINK: 'Idea generation process',
+    IDEA: 'Creative thought spark',
+    WISDOM: 'Applied knowledge insight',
+  },
+  environment: {
+    TREE: 'Carbon dioxide absorber',
+    OCEAN: 'Vast water ecosystem',
+    EARTH: 'Our living planet',
+    WIND: 'Natural air movement',
+    RAIN: 'Water cycle component',
+    SUN: 'Energy source star',
+    NATURE: 'Wildlife and ecosystems',
+    GREEN: 'Forest color symbol',
+    CLEAN: 'Pollution-free environment goal',
+    PLANET: 'Celestial body home',
+    FOREST: 'Dense tree habitat',
+    WATER: 'Life sustaining liquid',
+  },
+};
+
+// Enhanced Gemini Service with improved hint generation
 class GeminiService {
   static async generateWords(domain, difficulty, count, usedWords) {
     const config = DIFFICULTY_CONFIGS[difficulty];
@@ -46,9 +133,10 @@ class GeminiService {
       return this.getFallbackWords(domain, count, config);
     }
 
-    const prompt = `Generate exactly ${count} unique English words related to the "${domain}" domain, not included in this list: [${usedWords.join(',')}]. 
-    Words must be ${config.minWordLength} to ${config.maxWordLength} letters long, suitable for ${difficulty} difficulty (e.g., simple for easy, technical for hard/master). 
-    Respond ONLY with words separated by commas, no explanations or numbering.`;
+    const prompt = `Generate exactly ${count} unique English words highly relevant to the "${domain}" domain. 
+    Exclude these used words: [${usedWords.join(',')}]. 
+    Words must be ${config.minWordLength} to ${config.maxWordLength} letters, suitable for ${difficulty} difficulty. 
+    Focus on educational, core concepts of the domain. Respond ONLY with words separated by commas, no explanations.`;
 
     try {
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
@@ -65,7 +153,7 @@ class GeminiService {
         headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Client': 'gemini-react-wordsearch' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 1000, temperature: 0.7 },
+          generationConfig: { maxOutputTokens: 1000, temperature: 0.9 },
         }),
         signal: controller.signal,
       });
@@ -73,9 +161,7 @@ class GeminiService {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        if (response.status === 403) toast.error('API access denied. Check your API key permissions.');
-        else if (response.status === 429) toast.warning('Rate limit exceeded. Please try again in a moment.');
-        else toast.error(`API error (${response.status}). Using fallback words.`);
+        toast.error(`API error (${response.status}). Using fallback words.`);
         return this.getFallbackWords(domain, count, config);
       }
 
@@ -98,12 +184,10 @@ class GeminiService {
         words.push(...fallbackWords);
       }
 
-      toast.success(`Generated ${words.length} words for ${domain}!`);
+      toast.success(`Generated ${words.length} unique words for ${domain}!`);
       return words;
     } catch (error) {
-      if (error.name === 'AbortError') toast.error('Request timed out. Using fallback words.');
-      else if (error.message.includes('Failed to fetch')) toast.error('Network error. Check your connection.');
-      else toast.error('Unexpected error occurred. Using fallback words.');
+      toast.error('Error generating words. Using fallback words.');
       console.error('Error generating words:', error);
       return this.getFallbackWords(domain, count, config);
     }
@@ -117,16 +201,19 @@ class GeminiService {
     return filteredWords.slice(0, count);
   }
 
-  static async generateHint(word, domain) {
+  static async generateHint(word, domain, retries = 2) {
     if (!word || !domain) return this.getFallbackHint(word, domain);
 
-    const prompt = `Generate a hint for the word "${word}" in the "${domain}" domain in English. 
-    The hint must be exactly 4 words, using simple, clear, everyday language suitable for beginners. 
-    Avoid technical or obscure terms. Respond ONLY with the hint.`;
+    const prompt = `Provide a concise 4-word hint for the word "${word}" in the "${domain}" domain. 
+    The hint must describe the word's meaning or context without using the word itself, any of its parts, or generic phrases like "related to". 
+    Make it educational, domain-specific, and avoid direct references to the word. Respond ONLY with the 4-word hint.`;
 
     try {
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      if (!apiKey) return this.getFallbackHint(word, domain);
+      if (!apiKey) {
+        console.warn('API key not configured. Using fallback hint.');
+        return this.getFallbackHint(word, domain);
+      }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -136,68 +223,79 @@ class GeminiService {
         headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Client': 'gemini-react-wordsearch' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 50, temperature: 0.3 },
+          generationConfig: { maxOutputTokens: 50, temperature: 0.4 },
         }),
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) return this.getFallbackHint(word, domain);
+      if (!response.ok) {
+        console.warn(`Hint generation failed for ${word}. Retries left: ${retries - 1}`);
+        if (retries > 0) {
+          return this.generateHint(word, domain, retries - 1);
+        }
+        return this.getFallbackHint(word, domain);
+      }
 
       const data = await response.json();
       const hintText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      return hintText ? hintText.trim().slice(0, 50) : this.getFallbackHint(word, domain);
+      // Validate hint
+      if (
+        hintText &&
+        !hintText.toUpperCase().includes(word.toUpperCase()) &&
+        !hintText.toLowerCase().includes('related to') &&
+        hintText.trim().split(/\s+/).length === 4
+      ) {
+        return hintText.trim().slice(0, 50);
+      }
+
+      console.warn(`Invalid hint for ${word}: "${hintText}". Retries left: ${retries - 1}`);
+      if (retries > 0) {
+        return this.generateHint(word, domain, retries - 1);
+      }
+      return this.getFallbackHint(word, domain);
     } catch (error) {
       console.error('Error generating hint:', error);
+      if (retries > 0) {
+        console.warn(`Retrying hint generation for ${word}. Retries left: ${retries - 1}`);
+        return this.generateHint(word, domain, retries - 1);
+      }
       return this.getFallbackHint(word, domain);
     }
   }
 
   static getFallbackHint(word, domain) {
-    const hints = {
-      technology: `Tech term: ${word}`,
-      science: `Science concept: ${word}`,
-      business: `Business term: ${word}`,
-      health: `Health related: ${word}`,
-      education: `Learning term: ${word}`,
-      environment: `Nature term: ${word}`,
-    };
-    return hints[domain] || `Related to ${domain}`;
+    const domainHints = FALLBACK_HINTS[domain] || FALLBACK_HINTS.technology;
+    return domainHints[word] || `Key ${domain} concept`;
   }
 
   static async explainWord(word, domain) {
     if (!word || !domain) return this.getFallbackExplanation(word, domain);
 
-    const prompt = `Explain the word "${word}" in the context of the "${domain}" domain in English. 
-    Provide a simple and short explanation (1-2 sentences, max 20 words) that aids learning.`;
+    const prompt = `Explain "${word}" in the "${domain}" domain in English. 
+    Limit to 15 words, focus on educational relevance. Respond ONLY with the explanation.`;
 
     try {
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       if (!apiKey) return this.getFallbackExplanation(word, domain);
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Client': 'gemini-react-wordsearch' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 100, temperature: 0.5 },
+          generationConfig: { maxOutputTokens: 50, temperature: 0.5 },
         }),
-        signal: controller.signal,
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) return this.getFallbackExplanation(word, domain);
 
       const data = await response.json();
       const explanationText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      return explanationText ? explanationText.trim().slice(0, 200) : this.getFallbackExplanation(word, domain);
+      return explanationText ? explanationText.trim().slice(0, 100) : this.getFallbackExplanation(word, domain);
     } catch (error) {
       console.error('Error explaining word:', error);
       return this.getFallbackExplanation(word, domain);
@@ -205,7 +303,7 @@ class GeminiService {
   }
 
   static getFallbackExplanation(word, domain) {
-    return `${word} is an important term in ${domain} that helps expand your knowledge.`;
+    return `${word} is a key concept in ${domain}.`;
   }
 }
 
@@ -270,18 +368,16 @@ const generateGrid = (words, gridSize) => {
     }
   }
 
-  if (placedCount < words.length) toast.warning(`Only ${placedCount}/${words.length} words could be placed in the grid.`);
+  if (placedCount < words.length) toast.warning(`Only ${placedCount}/${words.length} words placed.`);
 
   return { grid, placedWords };
 };
 
 const WordSearchGame = () => {
-  // Game state
   const [gameState, setGameState] = useState('domain-selection');
   const [selectedDomain, setSelectedDomain] = useState(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState(null);
 
-  // Words and grid
   const [generatedWords, setGeneratedWords] = useState([]);
   const [wordHints, setWordHints] = useState([]);
   const [wordExplanations, setWordExplanations] = useState([]);
@@ -289,24 +385,21 @@ const WordSearchGame = () => {
   const [wordsData, setWordsData] = useState([]);
   const [usedWords, setUsedWords] = useState([]);
 
-  // Selection and interaction
   const [selectedCells, setSelectedCells] = useState([]);
   const [foundWords, setFoundWords] = useState([]);
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionLine, setSelectionLine] = useState(null);
 
-  // Game status
   const [timeLeft, setTimeLeft] = useState(0);
   const [score, setScore] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [windowSize, setWindowSize] = useState({ width: 1024, height: 768 });
 
-  // Refs
   const gridRef = useRef(null);
   const intervalRef = useRef(null);
 
-  // Handle window size for SSR compatibility
+  // Handle window resize
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
@@ -316,96 +409,97 @@ const WordSearchGame = () => {
     }
   }, []);
 
-  // Memoized values for performance
   const currentConfig = useMemo(() => (selectedDifficulty ? DIFFICULTY_CONFIGS[selectedDifficulty] : null), [selectedDifficulty]);
   const progressPercentage = useMemo(
     () => (generatedWords.length > 0 ? (foundWords.length / generatedWords.length) * 100 : 0),
     [foundWords.length, generatedWords.length]
   );
 
-  // Domain selection handler
   const selectDomain = useCallback((domain) => {
-    try {
-      if (!domain?.id) throw new Error('Invalid domain');
-      setSelectedDomain(domain);
-      setGameState('difficulty-selection');
-      toast.success(`Selected ${domain.name} domain!`);
-    } catch (error) {
-      console.error('Error selecting domain:', error);
-      toast.error('Failed to select domain. Please try again.');
-    }
+    setSelectedDomain(domain);
+    setGameState('difficulty-selection');
+    setUsedWords([]); // Reset used words on domain change
+    setGeneratedWords([]);
+    setWordHints([]);
+    toast.success(`Selected ${domain.name} domain!`);
   }, []);
 
-  // Difficulty selection and game initialization
   const selectDifficulty = useCallback(
     async (difficulty) => {
-      try {
-        if (!DIFFICULTY_CONFIGS[difficulty]) throw new Error('Invalid difficulty');
-        setSelectedDifficulty(difficulty);
-        setGameState('loading');
-        setIsLoading(true);
+      setSelectedDifficulty(difficulty);
+      setGameState('loading');
+      setIsLoading(true);
 
-        const config = DIFFICULTY_CONFIGS[difficulty];
-        const words = await GeminiService.generateWords(selectedDomain.id, difficulty, config.wordCount, usedWords);
+      // Reset game state to ensure fresh start
+      setGeneratedWords([]);
+      setWordHints([]);
+      setWordExplanations([]);
+      setGrid([]);
+      setWordsData([]);
+      setFoundWords([]);
+      setScore(0);
+      setSelectedCells([]);
+      setSelectionLine(null);
 
-        if (!words?.length) throw new Error('No words could be generated');
+      const config = DIFFICULTY_CONFIGS[difficulty];
+      const words = await GeminiService.generateWords(selectedDomain.id, difficulty, config.wordCount, usedWords);
 
-        const hints = await Promise.all(words.map((word) => GeminiService.generateHint(word, selectedDomain.id)));
-        setGeneratedWords(words);
-        setWordHints(hints);
-        setUsedWords((prev) => [...new Set([...prev, ...words])].slice(-100));
-
-        const { grid: newGrid, placedWords } = generateGrid(words, config.gridSize);
-        if (!placedWords?.length) throw new Error('Failed to place words in grid');
-
-        setGrid(newGrid);
-        setWordsData(placedWords);
-        setFoundWords([]);
-        setWordExplanations([]);
-        setScore(0);
-        setTimeLeft(config.gameDuration);
-        setSelectedCells([]);
-        setSelectionLine(null);
-
-        setGameState('playing');
-        toast.success(`Game started! Find ${placedWords.length} words in ${difficulty} mode.`);
-      } catch (error) {
-        console.error('Error during game setup:', error);
-        toast.error('Failed to start game. Please try again.');
+      if (!words?.length) {
+        toast.error('Failed to generate words.');
         setGameState('domain-selection');
-      } finally {
         setIsLoading(false);
+        return;
       }
+
+      // Generate hints for each word
+      const hints = await Promise.all(
+        words.map(async (word) => {
+          const hint = await GeminiService.generateHint(word, selectedDomain.id);
+          return hint || GeminiService.getFallbackHint(word, selectedDomain.id);
+        })
+      );
+
+      setGeneratedWords(words);
+      setWordHints(hints);
+      setUsedWords((prev) => [...new Set([...prev, ...words])].slice(-200)); // Keep last 200 words
+
+      const { grid: newGrid, placedWords } = generateGrid(words, config.gridSize);
+      if (!placedWords?.length) {
+        toast.error('Failed to place words in grid.');
+        setGameState('domain-selection');
+        setIsLoading(false);
+        return;
+      }
+
+      setGrid(newGrid);
+      setWordsData(placedWords);
+      setTimeLeft(config.gameDuration);
+
+      setGameState('playing');
+      toast.success(`Game started! Find ${placedWords.length} words.`);
+      setIsLoading(false);
     },
     [selectedDomain, usedWords]
   );
 
-  // Add word explanation
   const addWordExplanation = useCallback(
     async (word) => {
       if (!selectedDomain?.id || !word) return;
 
-      try {
-        const explanation = await GeminiService.explainWord(word, selectedDomain.id);
-        setWordExplanations((prev) => [...prev, { word, explanation }]);
-        toast.success(`Learned about: ${word}`);
-      } catch (error) {
-        console.error('Error fetching explanation:', error);
-        const fallbackExplanation = GeminiService.getFallbackExplanation(word, selectedDomain.id);
-        setWordExplanations((prev) => [...prev, { word, explanation: fallbackExplanation }]);
-      }
+      const explanation = await GeminiService.explainWord(word, selectedDomain.id);
+      setWordExplanations((prev) => [...prev, { word, explanation }]);
+      toast.success(`Learned about: ${word}`);
     },
     [selectedDomain]
   );
 
-  // Timer effect
   useEffect(() => {
     if (gameState === 'playing' && timeLeft > 0) {
       intervalRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             setGameState('finished');
-            toast.info("Time's up! Game finished.");
+            toast.info("Time's up!");
             return 0;
           }
           return prev - 1;
@@ -420,17 +514,15 @@ const WordSearchGame = () => {
     };
   }, [gameState, timeLeft]);
 
-  // Win condition check
   useEffect(() => {
     if (generatedWords.length > 0 && foundWords.length === generatedWords.length && gameState === 'playing') {
       setGameState('finished');
       setShowConfetti(true);
-      toast.success('Congratulations! You found all words!');
+      toast.success('You found all words!');
       setTimeout(() => setShowConfetti(false), 5000);
     }
   }, [foundWords.length, generatedWords.length, gameState]);
 
-  // Mouse/touch handlers for word selection
   const handleMouseDown = useCallback(
     (row, col) => {
       if (gameState !== 'playing' || row == null || col == null) return;
@@ -477,34 +569,29 @@ const WordSearchGame = () => {
 
     setIsSelecting(false);
 
-    try {
-      const currentSelectionLetters = selectedCells.map((cell) => grid[cell.row][cell.col]).join('');
-      const foundWordData = wordsData.find(
-        (wordData) => {
-          const isMatch =
-            wordData.word === currentSelectionLetters || wordData.word === currentSelectionLetters.split('').reverse().join('');
-          return isMatch && !wordData.found;
-        }
+    const currentSelectionLetters = selectedCells.map((cell) => grid[cell.row][cell.col]).join('');
+    const foundWordData = wordsData.find(
+      (wordData) => {
+        const isMatch =
+          wordData.word === currentSelectionLetters || wordData.word === currentSelectionLetters.split('').reverse().join('');
+        return isMatch && !wordData.found;
+      }
+    );
+
+    if (foundWordData) {
+      setFoundWords((prev) => [...prev, foundWordData.word]);
+      const points = foundWordData.word.length * 10;
+      setScore((prev) => prev + points);
+      setWordsData((prev) =>
+        prev.map((word) => (word.word === foundWordData.word ? { ...word, found: true } : word))
       );
 
-      if (foundWordData) {
-        setFoundWords((prev) => [...prev, foundWordData.word]);
-        const points = foundWordData.word.length * 10;
-        setScore((prev) => prev + points);
-        setWordsData((prev) =>
-          prev.map((word) => (word.word === foundWordData.word ? { ...word, found: true } : word))
-        );
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+      if (typeof window !== 'undefined' && 'vibrate' in window.navigator) window.navigator.vibrate([100, 50, 100]);
 
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 3000);
-        if (typeof window !== 'undefined' && 'vibrate' in window.navigator) window.navigator.vibrate([100, 50, 100]);
-
-        toast.success(`Found "${foundWordData.word}"! +${points} points`);
-        await addWordExplanation(foundWordData.word);
-      }
-    } catch (error) {
-      console.error('Error processing word selection:', error);
-      toast.error('Error processing selection. Please try again.');
+      toast.success(`Found "${foundWordData.word}"! +${points} points`);
+      await addWordExplanation(foundWordData.word);
     }
 
     setTimeout(() => {
@@ -513,7 +600,6 @@ const WordSearchGame = () => {
     }, 300);
   }, [isSelecting, selectedCells, grid, wordsData, gameState, addWordExplanation]);
 
-  // Get cells in a line (for word selection)
   const getLineCells = useCallback(
     (startRow, startCol, endRow, endCol) => {
       const cells = [];
@@ -538,7 +624,6 @@ const WordSearchGame = () => {
     [currentConfig]
   );
 
-  // Utility functions
   const formatTime = useCallback((seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -556,29 +641,24 @@ const WordSearchGame = () => {
   );
 
   const goToMainMenu = useCallback(() => {
-    try {
-      setGameState('domain-selection');
-      setSelectedDomain(null);
-      setSelectedDifficulty(null);
-      setGeneratedWords([]);
-      setWordHints([]);
-      setWordExplanations([]);
-      setGrid([]);
-      setWordsData([]);
-      setFoundWords([]);
-      setScore(0);
-      setTimeLeft(0);
-      setSelectedCells([]);
-      setSelectionLine(null);
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      toast.info('Returned to main menu');
-    } catch (error) {
-      console.error('Error returning to main menu:', error);
-      toast.error('Error returning to menu. Please refresh the page.');
-    }
+    setGameState('domain-selection');
+    setSelectedDomain(null);
+    setSelectedDifficulty(null);
+    setGeneratedWords([]);
+    setWordHints([]);
+    setWordExplanations([]);
+    setGrid([]);
+    setWordsData([]);
+    setFoundWords([]);
+    setScore(0);
+    setTimeLeft(0);
+    setSelectedCells([]);
+    setSelectionLine(null);
+    setUsedWords([]); // Reset used words for fresh start
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    toast.info('Returned to main menu');
   }, []);
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0, scale: 0.9 },
     visible: { opacity: 1, scale: 1, transition: { duration: 0.5, staggerChildren: 0.1 } },
@@ -645,12 +725,18 @@ const WordSearchGame = () => {
           0%, 100% { background: rgba(52, 211, 153, 0.5); }
           50% { background: rgba(52, 211, 153, 1); }
         }
+        .pulse-line {
+          animation: pulse-line 1s ease-in-out infinite;
+        }
+        @keyframes pulse-line {
+          0%, 100% { stroke-opacity: 0.8; }
+          50% { stroke-opacity: 1; }
+        }
       `}</style>
 
       {showConfetti && <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={200} />}
 
       <div className="max-w-7xl mx-auto py-4 sm:py-8 px-2 sm:px-4">
-        {/* Header */}
         <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center mb-8 sm:mb-12">
           <h1 className="text-3xl sm:text-4xl md:text-6xl font-black gradient-text mb-3 flex items-center justify-center gap-2 sm:gap-4 float">
             <Brain className="text-blue-600" size={windowSize.width < 640 ? 40 : 56} />
@@ -662,7 +748,6 @@ const WordSearchGame = () => {
         </motion.div>
 
         <AnimatePresence mode="wait">
-          {/* Domain Selection Screen */}
           {gameState === 'domain-selection' && (
             <motion.div key="domain-selection" variants={containerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-8 sm:space-y-10">
               <motion.div variants={itemVariants} className="text-center">
@@ -697,7 +782,6 @@ const WordSearchGame = () => {
             </motion.div>
           )}
 
-          {/* Difficulty Selection Screen */}
           {gameState === 'difficulty-selection' && (
             <motion.div key="difficulty-selection" variants={containerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-8 sm:space-y-10">
               <motion.div variants={itemVariants} className="text-center">
@@ -743,7 +827,6 @@ const WordSearchGame = () => {
             </motion.div>
           )}
 
-          {/* Loading Screen */}
           {gameState === 'loading' && (
             <motion.div
               key="loading"
@@ -783,12 +866,9 @@ const WordSearchGame = () => {
             </motion.div>
           )}
 
-          {/* Main Game Screen */}
           {(gameState === 'playing' || gameState === 'paused') && (
             <motion.div key="game" variants={containerVariants} initial="hidden" animate="visible" exit="exit" className="grid grid-cols-1 xl:grid-cols-5 gap-4 sm:gap-6 lg:gap-8">
-              {/* Control Panel */}
               <div className="xl:col-span-2 space-y-4 sm:space-y-6">
-                {/* Domain Info Card */}
                 <motion.div variants={itemVariants} className="glassmorphism rounded-xl sm:rounded-2xl p-4 sm:p-5">
                   <div className="flex items-center gap-3 sm:gap-4">
                     <span className="text-2xl sm:text-3xl">{selectedDomain?.icon}</span>
@@ -801,7 +881,6 @@ const WordSearchGame = () => {
                   </div>
                 </motion.div>
 
-                {/* Game Stats */}
                 <motion.div variants={itemVariants} className="glassmorphism rounded-xl sm:rounded-2xl p-4 sm:p-6">
                   <h3 className="text-blue-800 font-bold text-lg sm:text-xl mb-4 sm:mb-5 flex items-center gap-3">
                     <Clock className="text-blue-600" size={20} /> Stats
@@ -833,7 +912,6 @@ const WordSearchGame = () => {
                       </div>
                     </div>
 
-                    {/* Progress Bar */}
                     <div className="w-full bg-white/20 rounded-full h-2 mt-3">
                       <motion.div
                         className="bg-gradient-to-r from-blue-500 to-cyan-400 h-2 rounded-full"
@@ -845,7 +923,6 @@ const WordSearchGame = () => {
                   </div>
                 </motion.div>
 
-                {/* Hints List */}
                 <motion.div variants={itemVariants} className="glassmorphism rounded-xl sm:rounded-2xl p-4 sm:p-6">
                   <h3 className="text-blue-800 font-bold text-lg sm:text-xl mb-3 sm:mb-4 flex items-center gap-3">
                     <BookOpen size={20} className="text-blue-600" />
@@ -856,7 +933,7 @@ const WordSearchGame = () => {
                       const isFound = foundWords.includes(generatedWords[index]);
                       return (
                         <motion.div
-                          key={index}
+                          key={`${generatedWords[index]}-${index}`}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.05 }}
@@ -873,7 +950,6 @@ const WordSearchGame = () => {
                   </div>
                 </motion.div>
 
-                {/* Game Controls */}
                 <motion.div variants={itemVariants} className="space-y-3 sm:space-y-4">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -894,12 +970,20 @@ const WordSearchGame = () => {
                     <RotateCcw size={20} />
                     Change Domain
                   </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => selectDifficulty(selectedDifficulty)}
+                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-4 sm:px-5 py-3 rounded-xl font-bold text-sm sm:text-lg flex items-center justify-center gap-3 hover:from-blue-600 hover:to-cyan-500 transition-all duration-200"
+                  >
+                    <RefreshCw size={20} />
+                    New Game
+                  </motion.button>
                 </motion.div>
               </div>
 
-              {/* Game Grid and Explanations */}
               <div className="xl:col-span-3 flex flex-col gap-4 sm:gap-6">
-                {/* Game Grid */}
                 <motion.div variants={itemVariants} className="relative p-2 sm:p-4 glassmorphism rounded-2xl sm:rounded-3xl">
                   <div
                     ref={gridRef}
@@ -955,32 +1039,31 @@ const WordSearchGame = () => {
                     )}
                   </div>
 
-                  {/* Selection Line */}
                   {selectionLine && (
-                    <svg className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ zIndex: 10 }}>
+                    <svg className="absolute top-0 left-0 w-full h-full pointer-events-auto">
                       <motion.line
                         x1={selectionLine.x1}
                         y1={selectionLine.y1}
-                        x2={selectionLine.x2}
-                        y2={selectionLine.y2}
+                        x2={selectionLine.x1}
+                        y2={selectionLine.y1}
                         stroke="url(#gradient)"
-                        strokeWidth="4"
+                        strokeWidth="8"
                         strokeLinecap="round"
+                        className="pulse-line"
                         initial={{ pathLength: 0, opacity: 0 }}
-                        animate={{ pathLength: 1, opacity: 1 }}
+                        animate={{ pathLength: 1, opacity: 0.9 }}
                         transition={{ duration: 0.2 }}
                       />
                       <defs>
                         <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                           <stop offset="0%" stopColor="#3b82f6" />
                           <stop offset="50%" stopColor="#06b6d4" />
-                          <stop offset="100%" stopColor="#a855f7" />
+                          <stop offset="100%" className="text-blue-600" />
                         </linearGradient>
                       </defs>
                     </svg>
                   )}
 
-                  {/* Pause Overlay */}
                   {gameState === 'paused' && (
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -995,7 +1078,6 @@ const WordSearchGame = () => {
                   )}
                 </motion.div>
 
-                {/* Explanations List */}
                 <motion.div variants={itemVariants} className="glassmorphism rounded-xl sm:rounded-2xl p-4 sm:p-6">
                   <h3 className="text-blue-800 font-bold text-lg sm:text-xl mb-3 sm:mb-4 flex items-center gap-3">
                     <Sparkles size={20} className="text-blue-600" />
@@ -1024,7 +1106,6 @@ const WordSearchGame = () => {
             </motion.div>
           )}
 
-          {/* End Game Screen */}
           {gameState === 'finished' && (
             <motion.div key="finished" variants={containerVariants} initial="hidden" animate="visible" exit="exit" className="text-center space-y-8 sm:space-y-10">
               <motion.div variants={itemVariants} className="glassmorphism rounded-2xl sm:rounded-3xl p-6 sm:p-10 max-w-lg mx-auto">
@@ -1063,7 +1144,7 @@ const WordSearchGame = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => selectedDifficulty && selectDifficulty(selectedDifficulty)}
+                  onClick={() => selectDifficulty(selectedDifficulty)}
                   className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-lg sm:text-xl flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-blue-400/25 transition-all duration-200"
                 >
                   <Play size={20} />
@@ -1084,7 +1165,6 @@ const WordSearchGame = () => {
           )}
         </AnimatePresence>
 
-        {/* Loading Indicator */}
         <AnimatePresence>
           {isLoading && (
             <motion.div
