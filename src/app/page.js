@@ -28,12 +28,12 @@ const DOMAINS = [
 
 // Fallback words for each domain
 const FALLBACK_WORDS = {
-  technology: ['CODE', 'DATA', 'WEB', 'API', 'TECH', 'SMART', 'LEARN', 'SYSTEM', 'CLOUD', 'NETWORK', 'SERVER', 'DATABASE'],
-  science: ['ATOM', 'CELL', 'DNA', 'GENE', 'MASS', 'ENERGY', 'FORCE', 'LIGHT', 'SPACE', 'MATTER', 'THEORY', 'METHOD'],
-  business: ['BRAND', 'SALES', 'PROFIT', 'MARKET', 'PLAN', 'GOAL', 'TEAM', 'LEAD', 'GROWTH', 'VALUE', 'TRADE', 'CLIENT'],
-  health: ['HEART', 'BRAIN', 'BLOOD', 'BONE', 'MUSCLE', 'HEALTH', 'DIET', 'EXERCISE', 'SLEEP', 'WELLNESS', 'IMMUNE', 'STRESS'],
-  education: ['LEARN', 'TEACH', 'STUDY', 'BOOK', 'CLASS', 'EXAM', 'SKILL', 'KNOW', 'MIND', 'THINK', 'IDEA', 'WISDOM'],
-  environment: ['TREE', 'OCEAN', 'EARTH', 'WIND', 'RAIN', 'SUN', 'NATURE', 'GREEN', 'CLEAN', 'PLANET', 'FOREST', 'WATER'],
+  technology: ['CODE', 'DATA', 'WEB', 'API', 'TECH', 'SMART', 'LEARN', 'SYSTEM', 'CLOUD', 'NETWORK', 'SERVER', 'DATABASE', 'ALGORITHM', 'PROGRAM', 'SOFTWARE', 'HARDWARE', 'INTERNET', 'COMPUTER', 'DEVELOP', 'INNOVATE'],
+  science: ['ATOM', 'CELL', 'DNA', 'GENE', 'MASS', 'ENERGY', 'FORCE', 'LIGHT', 'SPACE', 'MATTER', 'THEORY', 'METHOD', 'EXPERIMENT', 'RESEARCH', 'LABORATORY', 'SCIENTIST', 'DISCOVERY', 'INVENTION', 'HYPOTHESIS', 'OBSERVATION'],
+  business: ['BRAND', 'SALES', 'PROFIT', 'MARKET', 'PLAN', 'GOAL', 'TEAM', 'LEAD', 'GROWTH', 'VALUE', 'TRADE', 'CLIENT', 'STRATEGY', 'INVESTMENT', 'ENTREPRENEUR', 'MANAGEMENT', 'FINANCE', 'ECONOMY', 'INDUSTRY', 'COMMERCE'],
+  health: ['HEART', 'BRAIN', 'BLOOD', 'BONE', 'MUSCLE', 'HEALTH', 'DIET', 'EXERCISE', 'SLEEP', 'WELLNESS', 'IMMUNE', 'STRESS', 'MEDICINE', 'DOCTOR', 'HOSPITAL', 'TREATMENT', 'DISEASE', 'PREVENTION', 'NUTRITION', 'FITNESS'],
+  education: ['LEARN', 'TEACH', 'STUDY', 'BOOK', 'CLASS', 'EXAM', 'SKILL', 'KNOW', 'MIND', 'THINK', 'IDEA', 'WISDOM', 'SCHOOL', 'UNIVERSITY', 'PROFESSOR', 'STUDENT', 'LESSON', 'CURRICULUM', 'KNOWLEDGE', 'EDUCATION'],
+  environment: ['TREE', 'OCEAN', 'EARTH', 'WIND', 'RAIN', 'SUN', 'NATURE', 'GREEN', 'CLEAN', 'PLANET', 'FOREST', 'WATER', 'ECOLOGY', 'CLIMATE', 'WEATHER', 'ANIMAL', 'PLANT', 'SUSTAINABLE', 'RENEWABLE', 'POLLUTION'],
 };
 
 // Fallback hints for each domain
@@ -51,6 +51,14 @@ const FALLBACK_HINTS = {
     NETWORK: 'Connected device web',
     SERVER: 'Data hosting machine',
     DATABASE: 'Structured data repository',
+    ALGORITHM: 'Step-by-step problem solver',
+    PROGRAM: 'Set of instructions',
+    SOFTWARE: 'Computer programs and applications',
+    HARDWARE: 'Physical computer components',
+    INTERNET: 'Global network of computers',
+    COMPUTER: 'Electronic device for processing',
+    DEVELOP: 'Create or improve software',
+    INNOVATE: 'Introduce new ideas or methods',
   },
   science: {
     ATOM: 'Smallest chemical unit',
@@ -65,6 +73,14 @@ const FALLBACK_HINTS = {
     MATTER: 'Physical substance base',
     THEORY: 'Scientific explanation model',
     METHOD: 'Research process steps',
+    EXPERIMENT: 'Test of hypothesis',
+    RESEARCH: 'Systematic investigation',
+    LABORATORY: 'Controlled environment for experiments',
+    SCIENTIST: 'Person who conducts research',
+    DISCOVERY: 'Finding something new',
+    INVENTION: 'Creating something new',
+    HYPOTHESIS: 'Testable prediction',
+    OBSERVATION: 'Act of noticing',
   },
   business: {
     BRAND: 'Company identity marker',
@@ -79,6 +95,14 @@ const FALLBACK_HINTS = {
     VALUE: 'Customer benefit offer',
     TRADE: 'Goods exchange process',
     CLIENT: 'Service recipient partner',
+    STRATEGY: 'Plan to achieve goals',
+    INVESTMENT: 'Money spent for profit',
+    ENTREPRENEUR: 'Person who starts businesses',
+    MANAGEMENT: 'Directing business operations',
+    FINANCE: 'Managing money matters',
+    ECONOMY: 'System of production and consumption',
+    INDUSTRY: 'Sector of economic activity',
+    COMMERCE: 'Buying and selling goods',
   },
   health: {
     HEART: 'Blood circulation organ',
@@ -93,6 +117,14 @@ const FALLBACK_HINTS = {
     WELLNESS: 'Holistic health balance',
     IMMUNE: 'Disease defense system',
     STRESS: 'Mental strain response',
+    MEDICINE: 'Substance to treat disease',
+    DOCTOR: 'Medical professional',
+    HOSPITAL: 'Place for medical treatment',
+    TREATMENT: 'Medical care for illness',
+    DISEASE: 'Abnormal condition affecting health',
+    PREVENTION: 'Measures to avoid illness',
+    NUTRITION: 'Food and health science',
+    FITNESS: 'Physical health and strength',
   },
   education: {
     LEARN: 'Knowledge acquisition process',
@@ -107,6 +139,14 @@ const FALLBACK_HINTS = {
     THINK: 'Idea generation process',
     IDEA: 'Creative thought spark',
     WISDOM: 'Applied knowledge insight',
+    SCHOOL: 'Institution for education',
+    UNIVERSITY: 'Higher education institution',
+    PROFESSOR: 'Teacher at university level',
+    STUDENT: 'Person who learns',
+    LESSON: 'Educational session',
+    CURRICULUM: 'Course of study',
+    KNOWLEDGE: 'Information and understanding',
+    EDUCATION: 'Process of learning',
   },
   environment: {
     TREE: 'Carbon dioxide absorber',
@@ -121,6 +161,14 @@ const FALLBACK_HINTS = {
     PLANET: 'Celestial body home',
     FOREST: 'Dense tree habitat',
     WATER: 'Life sustaining liquid',
+    ECOLOGY: 'Study of ecosystems',
+    CLIMATE: 'Long-term weather patterns',
+    WEATHER: 'Short-term atmospheric conditions',
+    ANIMAL: 'Living creature',
+    PLANT: 'Photosynthetic organism',
+    SUSTAINABLE: 'Environmentally friendly',
+    RENEWABLE: 'Energy from natural sources',
+    POLLUTION: 'Contamination of environment',
   },
 };
 
@@ -139,6 +187,7 @@ class GeminiService {
     Focus on educational, core concepts of the domain. Respond ONLY with words separated by commas, no explanations.`;
 
     try {
+      toast.info('AI is generating words...');
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       if (!apiKey) {
         toast.error('API key not configured. Using fallback words.');
@@ -241,7 +290,6 @@ class GeminiService {
       const data = await response.json();
       const hintText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      // Validate hint
       if (
         hintText &&
         !hintText.toUpperCase().includes(word.toUpperCase()) &&
@@ -418,7 +466,7 @@ const WordSearchGame = () => {
   const selectDomain = useCallback((domain) => {
     setSelectedDomain(domain);
     setGameState('difficulty-selection');
-    setUsedWords([]); // Reset used words on domain change
+    setUsedWords([]);
     setGeneratedWords([]);
     setWordHints([]);
     toast.success(`Selected ${domain.name} domain!`);
@@ -430,7 +478,6 @@ const WordSearchGame = () => {
       setGameState('loading');
       setIsLoading(true);
 
-      // Reset game state to ensure fresh start
       setGeneratedWords([]);
       setWordHints([]);
       setWordExplanations([]);
@@ -451,17 +498,18 @@ const WordSearchGame = () => {
         return;
       }
 
-      // Generate hints for each word
       const hints = await Promise.all(
         words.map(async (word) => {
+          setIsLoading(true);
           const hint = await GeminiService.generateHint(word, selectedDomain.id);
+          setIsLoading(false);
           return hint || GeminiService.getFallbackHint(word, selectedDomain.id);
         })
       );
 
       setGeneratedWords(words);
       setWordHints(hints);
-      setUsedWords((prev) => [...new Set([...prev, ...words])].slice(-200)); // Keep last 200 words
+      setUsedWords((prev) => [...new Set([...prev, ...words])].slice(-200));
 
       const { grid: newGrid, placedWords } = generateGrid(words, config.gridSize);
       if (!placedWords?.length) {
@@ -636,7 +684,7 @@ const WordSearchGame = () => {
   );
 
   const isCellInFoundWord = useCallback(
-    (row, col) => wordsData.some((wordData) => wordData.found && wordData.positions.some(([r, c]) => r === row && c === col)),
+    (row, col) => wordsData.find((wordData) => wordData.found && wordData.positions.some(([r, c]) => r === row && c === col)),
     [wordsData]
   );
 
@@ -654,7 +702,7 @@ const WordSearchGame = () => {
     setTimeLeft(0);
     setSelectedCells([]);
     setSelectionLine(null);
-    setUsedWords([]); // Reset used words for fresh start
+    setUsedWords([]);
     if (intervalRef.current) clearInterval(intervalRef.current);
     toast.info('Returned to main menu');
   }, []);
@@ -732,6 +780,11 @@ const WordSearchGame = () => {
           0%, 100% { stroke-opacity: 0.8; }
           50% { stroke-opacity: 1; }
         }
+        .grid-cell:hover {
+          transform: scale(1.1);
+          background-color: #e2e8f0;
+          transition: all 0.2s ease-in-out;
+        }
       `}</style>
 
       {showConfetti && <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={200} />}
@@ -740,7 +793,7 @@ const WordSearchGame = () => {
         <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center mb-8 sm:mb-12">
           <h1 className="text-3xl sm:text-4xl md:text-6xl font-black gradient-text mb-3 flex items-center justify-center gap-2 sm:gap-4 float">
             <Brain className="text-blue-600" size={windowSize.width < 640 ? 40 : 56} />
-            AI Word Search
+            Kelma - AI Word Search
           </h1>
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.6 }} className="text-blue-800 text-lg sm:text-xl font-medium">
             Learn through AI-powered word discovery
@@ -994,22 +1047,31 @@ const WordSearchGame = () => {
                     {grid.map((row, i) =>
                       row.map((letter, j) => {
                         const isSelected = isCellSelected(i, j);
-                        const isInFoundWord = isCellInFoundWord(i, j);
+                        const foundWordData = isCellInFoundWord(i, j);
 
                         return (
                           <motion.div
                             key={`${i}-${j}`}
                             initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: (i + j) * 0.01, type: 'spring', stiffness: 300, damping: 25 }}
+                            animate={{
+                              opacity: 1,
+                              scale: foundWordData ? [1, 1.2, 1] : 1,
+                            }}
+                            transition={{
+                              delay: (i + j) * 0.01,
+                              type: 'spring',
+                              stiffness: 300,
+                              damping: 25,
+                              scale: { duration: 0.5, repeat: Infinity, repeatType: 'reverse' },
+                            }}
                             className={`
-                              w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 flex items-center justify-center 
+                              grid-cell w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 flex items-center justify-center 
                               text-sm sm:text-lg md:text-xl font-extrabold uppercase
                               rounded-md border border-blue-200 cursor-pointer transition-colors duration-200
                               ${isSelected
                                 ? 'bg-cyan-400 text-white border-cyan-500'
-                                : isInFoundWord
-                                ? 'bg-emerald-400 text-white border-emerald-500 flash'
+                                : foundWordData
+                                ? 'bg-emerald-400 text-white border-emerald-500'
                                 : 'bg-white text-blue-800'
                               }
                             `}
@@ -1044,9 +1106,9 @@ const WordSearchGame = () => {
                       <motion.line
                         x1={selectionLine.x1}
                         y1={selectionLine.y1}
-                        x2={selectionLine.x1}
-                        y2={selectionLine.y1}
-                        stroke="url(#gradient)"
+                        x2={selectionLine.x2}
+                        y2={selectionLine.y2}
+                        stroke="url(#selection-gradient)"
                         strokeWidth="8"
                         strokeLinecap="round"
                         className="pulse-line"
@@ -1055,10 +1117,10 @@ const WordSearchGame = () => {
                         transition={{ duration: 0.2 }}
                       />
                       <defs>
-                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient id="selection-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                           <stop offset="0%" stopColor="#3b82f6" />
                           <stop offset="50%" stopColor="#06b6d4" />
-                          <stop offset="100%" className="text-blue-600" />
+                          <stop offset="100%" stopColor="#a855f7" />
                         </linearGradient>
                       </defs>
                     </svg>
