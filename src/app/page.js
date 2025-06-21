@@ -793,7 +793,7 @@ const WordSearchGame = () => {
         <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center mb-8 sm:mb-12">
           <h1 className="text-3xl sm:text-4xl md:text-6xl font-black gradient-text mb-3 flex items-center justify-center gap-2 sm:gap-4 float">
             <Brain className="text-blue-600" size={windowSize.width < 640 ? 40 : 56} />
-            Kelma - AI Word Search
+             Machy Kelma - AI Word Search
           </h1>
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.6 }} className="text-blue-800 text-lg sm:text-xl font-medium">
             Learn through AI-powered word discovery
