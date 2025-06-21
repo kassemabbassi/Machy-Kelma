@@ -1008,7 +1008,7 @@ const WordSearchGame = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setGameState(gameState === 'playing' ? 'paused' : 'playing')}
-                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-4 sm:px-6 py-3 xs:py-4 rounded-xl font-bold text-sm sm:text-lg flex items-center justify-center gap-3 hover:from-blue-600 hover:to-cyan-500 transition-all duration-200"
+                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-4 sm:px-5 py-3 rounded-xl font-bold text-sm sm:text-lg flex items-center justify-center gap-3 hover:from-blue-600 hover:to-cyan-500 transition-all duration-200"
                   >
                     {gameState === 'playing' ? <Pause size={20} /> : <Play size={20} />}
                     {gameState === 'playing' ? 'Pause Game' : 'Resume Game'}
@@ -1018,7 +1018,7 @@ const WordSearchGame = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={goToMainMenu}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-400 text-white px-4 sm:px-6 py-3 xs:py-4 rounded-xl font-bold text-sm sm:text-lg flex items-center justify-center gap-3 hover:from-blue-700 hover:to-blue-500 transition-all duration-200"
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-400 text-white px-4 sm:px-5 py-3 rounded-xl font-bold text-sm sm:text-lg flex items-center justify-center gap-3 hover:from-blue-700 hover:to-blue-500 transition-all duration-200"
                   >
                     <RotateCcw size={20} />
                     Change Domain
@@ -1028,7 +1028,7 @@ const WordSearchGame = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => selectDifficulty(selectedDifficulty)}
-                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-4 sm:px-6 py-3 xs:py-4 rounded-xl font-bold text-sm sm:text-lg flex items-center justify-center gap-3 hover:from-blue-600 hover:to-cyan-500 transition-all duration-200"
+                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-4 sm:px-5 py-3 rounded-xl font-bold text-sm sm:text-lg flex items-center justify-center gap-3 hover:from-blue-600 hover:to-cyan-500 transition-all duration-200"
                   >
                     <RefreshCw size={20} />
                     New Game
@@ -1040,8 +1040,8 @@ const WordSearchGame = () => {
                 <motion.div variants={itemVariants} className="relative p-2 sm:p-4 glassmorphism rounded-2xl sm:rounded-3xl">
                   <div
                     ref={gridRef}
-                    className="grid gap-1 xs:gap-2 sm:gap-3 justify-center mx-auto"
-                    style={{ gridTemplateColumns: `repeat(${currentConfig ? currentConfig.gridSize : 12}, minmax(0, 1fr))`, userSelect: 'none', touchAction: 'none', maxWidth: '100%' }}
+                    className="grid gap-1 sm:gap-2 justify-center"
+                    style={{ gridTemplateColumns: `repeat(${currentConfig ? currentConfig.gridSize : 12}, 1fr)`, userSelect: 'none', touchAction: 'none' }}
                     onMouseLeave={() => isSelecting && handleMouseUp()}
                   >
                     {grid.map((row, i) =>
@@ -1053,20 +1053,11 @@ const WordSearchGame = () => {
                           <motion.div
                             key={`${i}-${j}`}
                             initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{
-                              opacity: 1,
-                              scale: foundWordData ? [1, 1.2, 1] : 1,
-                            }}
-                            transition={{
-                              delay: (i + j) * 0.01,
-                              type: 'spring',
-                              stiffness: 300,
-                              damping: 25,
-                              scale: { duration: 0.5, repeat: Infinity, repeatType: 'reverse' },
-                            }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: (i + j) * 0.01 }}
                             className={`
-                              grid-cell w-10 h-10 xs:w-12 xs:h-12 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center 
-                              text-base xs:text-lg sm:text-lg md:text-xl font-extrabold uppercase
+                              grid-cell w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 flex items-center justify-center 
+                              text-sm sm:text-lg md:text-xl font-extrabold uppercase
                               rounded-md border border-blue-200 cursor-pointer transition-colors duration-200
                               ${isSelected
                                 ? 'bg-cyan-400 text-white border-cyan-500'
@@ -1090,10 +1081,7 @@ const WordSearchGame = () => {
                                 handleMouseEnter(parseInt(element.dataset.row), parseInt(element.dataset.col));
                               }
                             }}
-                            onTouchEnd={(e) => {
-                              e.preventDefault();
-                              handleMouseUp();
-                            }}
+                            onTouchEnd={handleMouseUp}
                             data-row={i}
                             data-col={j}
                           >
@@ -1178,7 +1166,7 @@ const WordSearchGame = () => {
                   animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
                   transition={{ duration: 2, repeat: Infinity, repeatType: 'reverse' }}
                 >
-                  <Trophy className="text-blue-600 mx-auto mb-6" size={64} />
+                  <Trophy classFracme="text-blue-600 mx-auto mb-6" size={64} />
                 </motion.div>
 
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text mb-4 sm:mb-5">
@@ -1210,7 +1198,7 @@ const WordSearchGame = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => selectDifficulty(selectedDifficulty)}
-                  className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-6 sm:px-8 py-3 xs:py-4 sm:py-4 rounded-xl font-bold text-lg sm:text-xl flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-blue-400/25 transition-all duration-200"
+                  className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-lg sm:text-xl flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-blue-400/25 transition-all duration-200"
                 >
                   <Play size={20} />
                   Play Again
@@ -1220,7 +1208,7 @@ const WordSearchGame = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={goToMainMenu}
-                  className="bg-gradient-to-r from-blue-600 to-blue-400 text-white px-6 sm:px-8 py-3 xs:py-4 sm:py-4 rounded-xl font-bold text-lg sm:text-xl flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-blue-400/25 transition-all duration-200"
+                  className="bg-gradient-to-r from-blue-600 to-blue-400 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-lg sm:text-xl flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-blue-400/25 transition-all duration-200"
                 >
                   <RotateCcw size={20} />
                   New Domain
