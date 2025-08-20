@@ -65,6 +65,27 @@ export function EnhancedGameBoard({
     }
   }, [grid])
 
+  // MOBILE FIX: Only prevent scrolling DURING word selection
+  useEffect(() => {
+    const preventScrollDuringSelection = (e: TouchEvent) => {
+      // Only prevent scrolling when actively selecting words
+      if (isDragging) {
+        e.preventDefault()
+      }
+    }
+
+    if (isDragging) {
+      // Prevent scrolling only when dragging
+      document.addEventListener("touchmove", preventScrollDuringSelection, { passive: false })
+      document.addEventListener("touchstart", preventScrollDuringSelection, { passive: false })
+    }
+
+    return () => {
+      document.removeEventListener("touchmove", preventScrollDuringSelection)
+      document.removeEventListener("touchstart", preventScrollDuringSelection)
+    }
+  }, [isDragging])
+
   const clearSelection = useCallback(() => {
     setGrid((prevGrid) => prevGrid.map((row) => row.map((cell) => ({ ...cell, selected: false }))))
     setSelectedCells([])
@@ -95,7 +116,6 @@ export function EnhancedGameBoard({
       const newSelectedCells = [cell]
       setSelectedCells(newSelectedCells)
 
-      // FIXED: Only select the specific cell that was clicked
       setGrid((prevGrid) =>
         prevGrid.map((row) =>
           row.map((c) => ({
@@ -110,10 +130,11 @@ export function EnhancedGameBoard({
     [setGrid, updateConnections, isPaused],
   )
 
-  // Add touch support
+  // IMPROVED TOUCH SUPPORT - Prevent scrolling only during selection
   const handleTouchStart = useCallback(
     (e: React.TouchEvent, cell: GridCell) => {
-      e.preventDefault()
+      // Don't prevent default here - let normal scrolling work
+      // Only prevent when we start dragging
       handleMouseDown(cell)
     },
     [handleMouseDown],
@@ -128,13 +149,11 @@ export function EnhancedGameBoard({
         const rowDiff = Math.abs(cell.row - lastCell.row)
         const colDiff = Math.abs(cell.col - lastCell.col)
 
-        // Only allow adjacent cells (including diagonals) and prevent selecting same cell twice
         if (rowDiff <= 1 && colDiff <= 1 && rowDiff + colDiff > 0) {
           if (!selectedCells.some((sc) => sc.row === cell.row && sc.col === cell.col)) {
             const newSelectedCells = [...selectedCells, cell]
             setSelectedCells(newSelectedCells)
 
-            // FIXED: Properly update grid selection - only select cells that are in newSelectedCells
             setGrid((prevGrid) =>
               prevGrid.map((row) =>
                 row.map((c) => ({
@@ -152,11 +171,14 @@ export function EnhancedGameBoard({
     [isDragging, selectedCells, setGrid, updateConnections, isPaused],
   )
 
-  // Add touch move support
+  // IMPROVED TOUCH MOVE - Only prevent scrolling during active selection
   const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
       if (!isDragging) return
+
+      // Prevent scrolling only when actively selecting
       e.preventDefault()
+      e.stopPropagation()
 
       const touch = e.touches[0]
       const element = document.elementFromPoint(touch.clientX, touch.clientY)
@@ -220,16 +242,14 @@ export function EnhancedGameBoard({
       // Mark cells as found with animation
       setGrid((prevGrid) =>
         prevGrid.map((row) =>
-          row.map(
-            (cell) =>
-              selectedCells.some((sc) => sc.row === cell.row && sc.col === cell.col)
-                ? { ...cell, found: true, selected: false }
-                : { ...cell, selected: false }, // Clear all selections
+          row.map((cell) =>
+            selectedCells.some((sc) => sc.row === cell.row && sc.col === cell.col)
+              ? { ...cell, found: true, selected: false }
+              : { ...cell, selected: false },
           ),
         ),
       )
 
-      // Clear selections
       setSelectedCells([])
       setConnections([])
     } else {
@@ -249,10 +269,10 @@ export function EnhancedGameBoard({
     isPaused,
   ])
 
-  // Add touch end support
+  // IMPROVED TOUCH END - Allow normal scrolling to resume
   const handleTouchEnd = useCallback(
     (e: React.TouchEvent) => {
-      e.preventDefault()
+      // Don't prevent default here - allow normal scrolling to resume
       handleMouseUp()
     },
     [handleMouseUp],
@@ -264,14 +284,16 @@ export function EnhancedGameBoard({
         handleMouseUp()
       }
     }
-    const handleGlobalTouchEnd = () => {
+    const handleGlobalTouchEnd = (e: TouchEvent) => {
       if (isDragging) {
+        // Only prevent default during active selection
+        e.preventDefault()
         handleMouseUp()
       }
     }
 
     window.addEventListener("mouseup", handleGlobalMouseUp)
-    window.addEventListener("touchend", handleGlobalTouchEnd)
+    window.addEventListener("touchend", handleGlobalTouchEnd, { passive: false })
 
     return () => {
       window.removeEventListener("mouseup", handleGlobalMouseUp)
@@ -279,29 +301,27 @@ export function EnhancedGameBoard({
     }
   }, [isDragging, handleMouseUp])
 
-  // Responsive cell size calculation
+  // Responsive cell size calculation - OPTIMIZED FOR MOBILE SCROLLING
   const getCellSize = () => {
     if (typeof window === "undefined") return 50
 
     const screenWidth = window.innerWidth
-    const screenHeight = window.innerHeight
-    const gridCols = grid[0]?.length || 10
-    const gridRows = grid.length || 10
+    const gridCols = grid[0]?.length || 8
+    const gridRows = grid.length || 8
 
-    // Mobile phones (portrait)
+    // Mobile phones - Allow larger grids that can be scrolled
     if (screenWidth < 640) {
+      // Don't constrain by screen height - allow scrolling
       const availableWidth = screenWidth - 32 // padding
-      const availableHeight = screenHeight * 0.4 // 40% of screen height for grid
-      const maxCellFromWidth = Math.floor((availableWidth - gridCols * 4) / gridCols) // 4px gap
-      const maxCellFromHeight = Math.floor((availableHeight - gridRows * 4) / gridRows)
-      return Math.max(28, Math.min(45, Math.min(maxCellFromWidth, maxCellFromHeight)))
+      const maxCellFromWidth = Math.floor((availableWidth - gridCols * 3) / gridCols)
+      return Math.max(35, Math.min(50, maxCellFromWidth)) // Good size for mobile tapping
     }
 
     // Tablets
     if (screenWidth < 1024) {
-      const availableWidth = screenWidth * 0.7 // 70% of screen width
-      const maxCellFromWidth = Math.floor((availableWidth - gridCols * 5) / gridCols)
-      return Math.max(40, Math.min(55, maxCellFromWidth))
+      const availableWidth = screenWidth * 0.7
+      const maxCellFromWidth = Math.floor((availableWidth - gridCols * 4) / gridCols)
+      return Math.max(45, Math.min(60, maxCellFromWidth))
     }
 
     // Desktop
@@ -313,25 +333,25 @@ export function EnhancedGameBoard({
   const getCellGap = () => {
     if (typeof window === "undefined") return 4
     const screenWidth = window.innerWidth
-    if (screenWidth < 640) return 3 // Mobile
-    if (screenWidth < 1024) return 4 // Tablet
-    return 6 // Desktop
+    if (screenWidth < 640) return 3 // Good spacing for mobile
+    if (screenWidth < 1024) return 4
+    return 5
   }
 
   const getFontSize = () => {
     if (typeof window === "undefined") return "text-xl"
     const screenWidth = window.innerWidth
-    if (screenWidth < 640) return "text-lg" // Mobile
-    if (screenWidth < 1024) return "text-xl" // Tablet
-    return "text-2xl" // Desktop
+    if (screenWidth < 640) return "text-lg" // Good readability on mobile
+    if (screenWidth < 1024) return "text-xl"
+    return "text-2xl"
   }
 
   const getPadding = () => {
     if (typeof window === "undefined") return "p-4"
     const screenWidth = window.innerWidth
-    if (screenWidth < 640) return "p-2" // Mobile
-    if (screenWidth < 1024) return "p-4" // Tablet
-    return "p-6" // Desktop
+    if (screenWidth < 640) return "p-3" // Some padding but not too much
+    if (screenWidth < 1024) return "p-4"
+    return "p-6"
   }
 
   if (!grid || grid.length === 0) {
@@ -351,7 +371,7 @@ export function EnhancedGameBoard({
   const padding = getPadding()
 
   return (
-    <div className={cn("relative flex items-center justify-center", padding)}>
+    <div className={cn("relative flex items-center justify-center w-full", padding)}>
       {/* Combo Display */}
       {combo > 0 && (
         <div className="absolute -top-2 sm:-top-4 left-1/2 transform -translate-x-1/2 z-20">
@@ -368,7 +388,7 @@ export function EnhancedGameBoard({
         </div>
       )}
 
-      <div className="relative w-full max-w-full overflow-hidden">
+      <div className="relative w-full max-w-full overflow-visible flex justify-center">
         {/* Particle Canvas */}
         <canvas
           ref={canvasRef}
@@ -417,11 +437,11 @@ export function EnhancedGameBoard({
           })}
         </svg>
 
-        {/* RESPONSIVE GRID - FIXED SELECTION */}
+        {/* SCROLLABLE GRID - Normal scrolling allowed, selection prevents scrolling */}
         <div
           ref={gridRef}
           className={cn(
-            "relative bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-gray-900 dark:via-slate-900 dark:to-blue-950 rounded-xl sm:rounded-2xl shadow-xl sm:shadow-2xl border border-blue-200 dark:border-blue-700 transition-all duration-200 mx-auto",
+            "relative bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-gray-900 dark:via-slate-900 dark:to-blue-950 rounded-lg sm:rounded-xl shadow-xl border border-blue-200 dark:border-blue-700 transition-all duration-200",
             isPaused && "opacity-50 grayscale",
             padding,
           )}
@@ -430,8 +450,11 @@ export function EnhancedGameBoard({
             gridTemplateColumns: `repeat(${grid[0].length}, ${cellSize}px)`,
             gridTemplateRows: `repeat(${grid.length}, ${cellSize}px)`,
             gap: `${cellGap}px`,
-            maxWidth: "100%",
             width: "fit-content",
+            // Remove touchAction: "none" to allow normal scrolling
+            userSelect: "none", // Prevents text selection
+            WebkitUserSelect: "none", // Safari support
+            WebkitTouchCallout: "none", // Prevents callout on iOS
           }}
           onMouseLeave={() => isDragging && handleMouseUp()}
           onTouchMove={handleTouchMove}
@@ -444,10 +467,10 @@ export function EnhancedGameBoard({
                 data-row={rIdx}
                 data-col={cIdx}
                 className={cn(
-                  "flex items-center justify-center font-black cursor-pointer select-none transition-all duration-200 rounded-lg sm:rounded-xl shadow-sm sm:shadow-md relative overflow-hidden border border-slate-300 dark:border-slate-600",
+                  "flex items-center justify-center font-bold cursor-pointer select-none transition-all duration-150 rounded-md sm:rounded-lg shadow-sm border border-slate-300 dark:border-slate-600",
                   fontSize,
-                  "active:scale-95 touch-manipulation", // Better mobile interaction
-                  "hover:scale-105 hover:shadow-lg hover:z-10",
+                  "active:scale-95", // Better mobile feedback
+                  "hover:scale-105 hover:shadow-md hover:z-10",
                   cell.found
                     ? "bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg scale-105 border-green-400"
                     : cell.selected
@@ -459,13 +482,19 @@ export function EnhancedGameBoard({
                   height: cellSize,
                   minHeight: cellSize,
                   minWidth: cellSize,
+                  // Remove touchAction: "none" to allow scrolling when not selecting
+                  userSelect: "none",
+                  WebkitUserSelect: "none",
+                  WebkitTouchCallout: "none",
                 }}
                 onMouseDown={() => handleMouseDown(cell)}
                 onMouseEnter={() => handleMouseEnter(cell)}
                 onTouchStart={(e) => handleTouchStart(e, cell)}
                 onTouchEnd={handleTouchEnd}
               >
-                <span className="relative z-10 font-black tracking-wider drop-shadow-sm leading-none">{cell.char}</span>
+                <span className="relative z-10 font-bold tracking-wide drop-shadow-sm leading-none pointer-events-none">
+                  {cell.char}
+                </span>
               </div>
             )),
           )}

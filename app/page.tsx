@@ -6,10 +6,9 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Loader2, Play, Trophy, Timer, Target, Sparkles, AlertTriangle, Volume2, VolumeX, Zap } from "lucide-react"
+import { Loader2, Play, Trophy, Timer, Target, Sparkles, Volume2, VolumeX } from "lucide-react"
 import type { User, Word, GameConfig, Difficulty, GameStats } from "@/types/game"
 import { THEMES, DIFFICULTIES } from "@/types/game"
 import { generateGameContent } from "@/lib/ai"
@@ -83,6 +82,8 @@ export default function HomePage() {
     soundManager.initialize()
     soundManager.setEnabled(soundEnabled)
   }, [soundEnabled])
+
+  // REMOVED: Body scroll prevention - allow normal scrolling
 
   const handleLogin = useCallback((user: User | null) => {
     setCurrentUser(user)
@@ -472,101 +473,83 @@ export default function HomePage() {
         <div className="absolute bottom-1/3 left-1/4 w-20 h-20 bg-yellow-200/20 dark:bg-yellow-800/20 rounded-full blur-xl animate-pulse delay-300" />
       </div>
 
-      {/* RESPONSIVE Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-sm bg-white/80 dark:bg-gray-900/80 border-b border-blue-200 dark:border-blue-800 shadow-lg">
-        <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-4 flex justify-between items-center">
+      {/* MOBILE-OPTIMIZED Header */}
+      <header className="sticky top-0 z-40 backdrop-blur-sm bg-white/90 dark:bg-gray-900/90 border-b border-blue-200 dark:border-blue-800 shadow-lg">
+        <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-3 flex justify-between items-center">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-xl">
-              <Sparkles className="w-4 h-4 sm:w-7 sm:h-7 text-white animate-pulse" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Sparkles className="w-4 h-4 sm:w-6 sm:h-6 text-white animate-pulse" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
+              <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
                 Machy Kelma
               </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                Hello, {currentUser.username}! 🎮
-              </p>
+              <p className="text-xs text-muted-foreground hidden sm:block">Hello, {currentUser.username}! 🎮</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-3">
             {gameStarted && !gameFinished && (
-              <div className="flex items-center gap-2 sm:gap-4">
-                {/* Enhanced Timer */}
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <div className="relative">
-                    <Timer
-                      className={`w-4 h-4 sm:w-5 sm:h-5 ${isTimeRunningOut ? "text-red-500 animate-bounce" : "text-blue-500"}`}
-                    />
-                    {isTimeRunningOut && (
-                      <AlertTriangle className="w-2 h-2 sm:w-3 sm:h-3 text-red-500 absolute -top-1 -right-1 animate-ping" />
-                    )}
-                  </div>
-                  <div className="min-w-[50px] sm:min-w-[70px]">
-                    <Badge
-                      variant="secondary"
-                      className={`text-sm sm:text-lg font-bold ${isTimeRunningOut ? "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 animate-pulse" : "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"}`}
-                    >
-                      {formatTime(timeRemaining)}
-                    </Badge>
-                    <Progress value={timeProgress} className="w-12 sm:w-20 h-1 sm:h-2 mt-1" />
-                  </div>
-                </div>
-
-                {/* Enhanced Score Display */}
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <Target className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />
+              <div className="flex items-center gap-1 sm:gap-3">
+                {/* Compact Timer for Mobile */}
+                <div className="flex items-center gap-1">
+                  <Timer
+                    className={`w-3 h-3 sm:w-4 sm:h-4 ${isTimeRunningOut ? "text-red-500 animate-bounce" : "text-blue-500"}`}
+                  />
                   <Badge
                     variant="secondary"
-                    className="text-sm sm:text-lg font-bold bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300"
+                    className={`text-xs sm:text-sm font-bold px-1 sm:px-2 ${isTimeRunningOut ? "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 animate-pulse" : "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"}`}
+                  >
+                    {formatTime(timeRemaining)}
+                  </Badge>
+                </div>
+
+                {/* Compact Score */}
+                <div className="flex items-center gap-1">
+                  <Target className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />
+                  <Badge
+                    variant="secondary"
+                    className="text-xs sm:text-sm font-bold px-1 sm:px-2 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300"
                   >
                     {score.toLocaleString()}
                   </Badge>
                 </div>
 
-                {/* Combo Display */}
+                {/* Compact Combo */}
                 {combo > 0 && (
-                  <div className="flex items-center gap-1 sm:gap-2">
-                    <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 animate-pulse" />
-                    <Badge
-                      variant="secondary"
-                      className="text-sm sm:text-lg font-bold bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 animate-pulse"
-                    >
-                      {combo + 1}x
-                    </Badge>
-                  </div>
+                  <Badge
+                    variant="secondary"
+                    className="text-xs font-bold px-1 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 animate-pulse"
+                  >
+                    {combo + 1}x
+                  </Badge>
                 )}
               </div>
             )}
 
-            {/* Sound Toggle */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSoundEnabled(!soundEnabled)
-                  soundManager.setEnabled(!soundEnabled)
-                }}
-                className="h-8 w-8 sm:h-10 sm:w-10 p-0"
-              >
-                {soundEnabled ? (
-                  <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                ) : (
-                  <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
-                )}
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSoundEnabled(!soundEnabled)
+                soundManager.setEnabled(!soundEnabled)
+              }}
+              className="h-6 w-6 sm:h-8 sm:w-8 p-0"
+            >
+              {soundEnabled ? (
+                <Volume2 className="w-3 h-3 sm:w-4 sm:h-4" />
+              ) : (
+                <VolumeX className="w-3 h-3 sm:w-4 sm:h-4" />
+              )}
+            </Button>
 
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowLeaderboard(true)}
-              className="flex items-center gap-1 sm:gap-2 bg-transparent hover:bg-white/10 border-2 text-xs sm:text-sm px-2 sm:px-3"
+              className="h-6 sm:h-8 px-1 sm:px-2 text-xs border bg-transparent"
             >
               <Trophy className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">Hall of Fame</span>
-              <span className="sm:hidden">🏆</span>
             </Button>
 
             <ThemeToggle />
@@ -574,20 +557,19 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-2 sm:px-4 py-3 sm:py-6 relative z-10">
+      {/* SCROLLABLE MAIN CONTENT - Normal scrolling allowed */}
+      <main className="container mx-auto px-1 sm:px-4 py-2 sm:py-4 relative z-10">
         {!gameStarted ? (
-          <div className="max-w-5xl mx-auto space-y-4 sm:space-y-8">
-            {/* Enhanced Game Setup */}
-            <Card className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-blue-200 dark:border-blue-800 shadow-2xl">
-              <CardHeader className="pb-3 sm:pb-6">
-                <CardTitle className="text-center text-2xl sm:text-4xl bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
-                  🎯 Configure Your Epic Challenge
+          <div className="max-w-4xl mx-auto space-y-3 sm:space-y-6">
+            {/* Compact Game Setup for Mobile */}
+            <Card className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-blue-200 dark:border-blue-800 shadow-xl">
+              <CardHeader className="pb-2 sm:pb-4">
+                <CardTitle className="text-center text-xl sm:text-3xl bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
+                  🎯 Choose Your Challenge
                 </CardTitle>
-                <p className="text-center text-muted-foreground text-sm sm:text-lg">
-                  Choose your adventure and test your word-finding skills!
-                </p>
+                <p className="text-center text-muted-foreground text-sm">Select theme and difficulty to start!</p>
               </CardHeader>
-              <CardContent className="space-y-4 sm:space-y-8">
+              <CardContent className="space-y-3 sm:space-y-6">
                 <ThemeSelection
                   selectedTheme={gameConfig.theme}
                   onThemeSelect={(theme) => setGameConfig((prev) => ({ ...prev, theme }))}
@@ -600,9 +582,9 @@ export default function HomePage() {
                   disabled={loadingGame}
                 />
 
-                {/* Sound Settings */}
-                <div className="flex items-center justify-center gap-4 p-3 sm:p-4 bg-blue-50/50 dark:bg-blue-950/50 rounded-lg">
-                  <Label htmlFor="sound-toggle" className="flex items-center gap-2 text-sm sm:text-base">
+                {/* Compact Sound Settings */}
+                <div className="flex items-center justify-center gap-3 p-2 sm:p-3 bg-blue-50/50 dark:bg-blue-950/50 rounded-lg">
+                  <Label htmlFor="sound-toggle" className="flex items-center gap-2 text-sm">
                     {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                     Sound Effects
                   </Label>
@@ -617,8 +599,8 @@ export default function HomePage() {
                 </div>
 
                 {gameError && (
-                  <div className="p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                    <p className="text-red-600 dark:text-red-400 font-medium text-sm sm:text-base">{gameError}</p>
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-red-600 dark:text-red-400 font-medium text-sm">{gameError}</p>
                   </div>
                 )}
 
@@ -627,41 +609,41 @@ export default function HomePage() {
                     onClick={handleStartGame}
                     disabled={loadingGame}
                     size="lg"
-                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 sm:px-12 py-3 sm:py-4 text-lg sm:text-xl font-bold shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105"
+                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 sm:px-8 py-3 text-base sm:text-lg font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
                   >
                     {loadingGame ? (
-                      <Loader2 className="mr-2 sm:mr-3 h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     ) : (
-                      <Play className="mr-2 sm:mr-3 h-5 w-5 sm:h-6 sm:w-6" />
+                      <Play className="mr-2 h-5 w-5" />
                     )}
-                    {loadingGame ? "🎲 Generating Magic..." : "🚀 Start Epic Adventure"}
+                    {loadingGame ? "🎲 Generating..." : "🚀 Start Game"}
                   </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6">
-            {/* Enhanced Game Board */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4">
+            {/* SCROLLABLE Game Board - Can scroll to see full grid */}
             <div className="lg:col-span-2 order-2 lg:order-1">
-              <Card className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-blue-200 dark:border-blue-800 shadow-2xl">
-                <CardHeader className="pb-2 sm:pb-4">
+              <Card className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-blue-200 dark:border-blue-800 shadow-xl">
+                <CardHeader className="pb-1 sm:pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-1 sm:gap-2 text-lg sm:text-xl">
-                      {selectedTheme?.icon}{" "}
+                    <CardTitle className="flex items-center gap-1 text-base sm:text-lg">
+                      {selectedTheme?.icon}
                       <span className="hidden sm:inline">
                         {selectedTheme?.name} - {selectedDifficulty?.name}
                       </span>
                       <span className="sm:hidden">{selectedDifficulty?.icon}</span>
                     </CardTitle>
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950 text-sm sm:text-lg font-bold">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950 text-sm font-bold">
                         {foundWords.length}/{wordsToFind.length}
                       </Badge>
                       {isPaused && (
                         <Badge
                           variant="secondary"
-                          className="bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 animate-pulse text-xs sm:text-sm"
+                          className="bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 animate-pulse text-xs"
                         >
                           ⏸️ PAUSED
                         </Badge>
@@ -669,7 +651,7 @@ export default function HomePage() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="p-2 sm:p-6">
+                <CardContent className="p-1 sm:p-4">
                   <EnhancedGameBoard
                     grid={grid}
                     setGrid={setGrid}
@@ -684,7 +666,7 @@ export default function HomePage() {
               </Card>
             </div>
 
-            {/* Enhanced Word List */}
+            {/* Compact Word List */}
             <div className="lg:col-span-1 order-1 lg:order-2">
               <EnhancedWordList
                 words={wordsToFind}
@@ -699,7 +681,7 @@ export default function HomePage() {
 
       {/* In-Game Controls - Hidden on mobile to save space */}
       {gameStarted && !gameFinished && (
-        <div className="hidden sm:block">
+        <div className="hidden lg:block">
           <InGameControls
             gameConfig={gameConfig}
             onThemeChange={handleThemeChange}
