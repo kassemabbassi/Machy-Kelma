@@ -86,7 +86,7 @@ export function AuthForm({ onLogin }: AuthFormProps) {
             <Sparkles className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
-            Machy Kelma
+            Crossify
           </h1>
           <p className="text-lg text-muted-foreground">AI-Powered Word Discovery Game</p>
         </div>

@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Machy Kelma",
+  title: "Crossify",
   description: "AI-Powered Interactive Word Search Game",
     generator: 'v0.app',
     icons: {
