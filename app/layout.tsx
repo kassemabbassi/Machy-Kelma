@@ -10,9 +10,9 @@ export const metadata: Metadata = {
   title: "Wordoria",
   description: "AI-Powered Interactive Word Search Game",
     generator: 'v0.app',
-    icons: {
-  icon: "/favicon.ico?v=1",
-},
+    icons:{
+      icon: "/favicon.ico?v=1",
+    }
 }
 
 export default function RootLayout({

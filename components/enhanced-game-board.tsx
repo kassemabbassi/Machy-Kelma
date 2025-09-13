@@ -33,7 +33,6 @@ export function EnhancedGameBoard({
   onComboReset,
   isPaused,
 }: EnhancedGameBoardProps) {
-  const [isDragging, setIsDragging] = useState(false)
   const [selectedCells, setSelectedCells] = useState<GridCell[]>([])
   const [connections, setConnections] = useState<Connection[]>([])
   const [foundWordAnimation, setFoundWordAnimation] = useState<string | null>(null)
@@ -65,27 +64,6 @@ export function EnhancedGameBoard({
     }
   }, [grid])
 
-  // MOBILE FIX: Only prevent scrolling DURING word selection
-  useEffect(() => {
-    const preventScrollDuringSelection = (e: TouchEvent) => {
-      // Only prevent scrolling when actively selecting words
-      if (isDragging) {
-        e.preventDefault()
-      }
-    }
-
-    if (isDragging) {
-      // Prevent scrolling only when dragging
-      document.addEventListener("touchmove", preventScrollDuringSelection, { passive: false })
-      document.addEventListener("touchstart", preventScrollDuringSelection, { passive: false })
-    }
-
-    return () => {
-      document.removeEventListener("touchmove", preventScrollDuringSelection)
-      document.removeEventListener("touchstart", preventScrollDuringSelection)
-    }
-  }, [isDragging])
-
   const clearSelection = useCallback(() => {
     setGrid((prevGrid) => prevGrid.map((row) => row.map((cell) => ({ ...cell, selected: false }))))
     setSelectedCells([])
@@ -108,98 +86,84 @@ export function EnhancedGameBoard({
     return Math.floor(baseScore * comboMultiplier)
   }, [])
 
-  const handleMouseDown = useCallback(
+  const isAdjacent = useCallback((cell1: GridCell, cell2: GridCell) => {
+    const rowDiff = Math.abs(cell1.row - cell2.row)
+    const colDiff = Math.abs(cell1.col - cell2.col)
+    return rowDiff <= 1 && colDiff <= 1 && rowDiff + colDiff > 0
+  }, [])
+
+  const handleCellClick = useCallback(
     (cell: GridCell) => {
       if (isPaused) return
 
-      setIsDragging(true)
-      const newSelectedCells = [cell]
-      setSelectedCells(newSelectedCells)
+      // Check if cell is already selected
+      const cellIndex = selectedCells.findIndex((sc) => sc.row === cell.row && sc.col === cell.col)
 
+      if (cellIndex !== -1) {
+        // If clicking the last selected cell, submit the word
+        if (cellIndex === selectedCells.length - 1) {
+          handleWordSubmit()
+          return
+        }
+        // If clicking any other selected cell, clear selection
+        clearSelection()
+        return
+      }
+
+      // If no cells selected, start new selection
+      if (selectedCells.length === 0) {
+        const newSelectedCells = [cell]
+        setSelectedCells(newSelectedCells)
+        setGrid((prevGrid) =>
+          prevGrid.map((row) =>
+            row.map((c) => ({
+              ...c,
+              selected: c.row === cell.row && c.col === cell.col,
+            })),
+          ),
+        )
+        updateConnections(newSelectedCells)
+        soundManager.play("tick", 0.3)
+        return
+      }
+
+      // Check if cell is adjacent to the last selected cell
+      const lastCell = selectedCells[selectedCells.length - 1]
+      if (!isAdjacent(cell, lastCell)) {
+        // If not adjacent, start new selection with this cell
+        const newSelectedCells = [cell]
+        setSelectedCells(newSelectedCells)
+        setGrid((prevGrid) =>
+          prevGrid.map((row) =>
+            row.map((c) => ({
+              ...c,
+              selected: c.row === cell.row && c.col === cell.col,
+            })),
+          ),
+        )
+        updateConnections(newSelectedCells)
+        soundManager.play("tick", 0.3)
+        return
+      }
+
+      // Add cell to selection
+      const newSelectedCells = [...selectedCells, cell]
+      setSelectedCells(newSelectedCells)
       setGrid((prevGrid) =>
         prevGrid.map((row) =>
           row.map((c) => ({
             ...c,
-            selected: c.row === cell.row && c.col === cell.col,
+            selected: newSelectedCells.some((sc) => sc.row === c.row && sc.col === c.col),
           })),
         ),
       )
       updateConnections(newSelectedCells)
-      soundManager.play("tick", 0.3)
+      soundManager.play("tick", 0.2)
     },
-    [setGrid, updateConnections, isPaused],
+    [selectedCells, setGrid, updateConnections, isPaused, isAdjacent, clearSelection],
   )
 
-  // IMPROVED TOUCH SUPPORT - Prevent scrolling only during selection
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent, cell: GridCell) => {
-      // Don't prevent default here - let normal scrolling work
-      // Only prevent when we start dragging
-      handleMouseDown(cell)
-    },
-    [handleMouseDown],
-  )
-
-  const handleMouseEnter = useCallback(
-    (cell: GridCell) => {
-      if (!isDragging || isPaused) return
-
-      const lastCell = selectedCells[selectedCells.length - 1]
-      if (lastCell) {
-        const rowDiff = Math.abs(cell.row - lastCell.row)
-        const colDiff = Math.abs(cell.col - lastCell.col)
-
-        if (rowDiff <= 1 && colDiff <= 1 && rowDiff + colDiff > 0) {
-          if (!selectedCells.some((sc) => sc.row === cell.row && sc.col === cell.col)) {
-            const newSelectedCells = [...selectedCells, cell]
-            setSelectedCells(newSelectedCells)
-
-            setGrid((prevGrid) =>
-              prevGrid.map((row) =>
-                row.map((c) => ({
-                  ...c,
-                  selected: newSelectedCells.some((sc) => sc.row === c.row && sc.col === c.col),
-                })),
-              ),
-            )
-            updateConnections(newSelectedCells)
-            soundManager.play("tick", 0.2)
-          }
-        }
-      }
-    },
-    [isDragging, selectedCells, setGrid, updateConnections, isPaused],
-  )
-
-  // IMPROVED TOUCH MOVE - Only prevent scrolling during active selection
-  const handleTouchMove = useCallback(
-    (e: React.TouchEvent) => {
-      if (!isDragging) return
-
-      // Prevent scrolling only when actively selecting
-      e.preventDefault()
-      e.stopPropagation()
-
-      const touch = e.touches[0]
-      const element = document.elementFromPoint(touch.clientX, touch.clientY)
-      const cellElement = element?.closest("[data-cell]") as HTMLElement
-
-      if (cellElement) {
-        const row = Number.parseInt(cellElement.dataset.row || "0")
-        const col = Number.parseInt(cellElement.dataset.col || "0")
-        const cell = grid[row]?.[col]
-        if (cell) {
-          handleMouseEnter(cell)
-        }
-      }
-    },
-    [isDragging, grid, handleMouseEnter],
-  )
-
-  const handleMouseUp = useCallback(() => {
-    if (isPaused) return
-
-    setIsDragging(false)
+  const handleWordSubmit = useCallback(() => {
     if (selectedCells.length === 0) return
 
     const selectedWord = selectedCells.map((c) => c.char).join("")
@@ -266,55 +230,34 @@ export function EnhancedGameBoard({
     clearSelection,
     calculateWordScore,
     grid,
-    isPaused,
   ])
 
-  // IMPROVED TOUCH END - Allow normal scrolling to resume
-  const handleTouchEnd = useCallback(
-    (e: React.TouchEvent) => {
-      // Don't prevent default here - allow normal scrolling to resume
-      handleMouseUp()
-    },
-    [handleMouseUp],
-  )
-
+  // Auto-submit when clicking outside the grid
   useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      if (isDragging) {
-        handleMouseUp()
-      }
-    }
-    const handleGlobalTouchEnd = (e: TouchEvent) => {
-      if (isDragging) {
-        // Only prevent default during active selection
-        e.preventDefault()
-        handleMouseUp()
+    const handleClickOutside = (event: MouseEvent) => {
+      if (gridRef.current && !gridRef.current.contains(event.target as Node) && selectedCells.length > 0) {
+        handleWordSubmit()
       }
     }
 
-    window.addEventListener("mouseup", handleGlobalMouseUp)
-    window.addEventListener("touchend", handleGlobalTouchEnd, { passive: false })
-
+    document.addEventListener("mousedown", handleClickOutside)
     return () => {
-      window.removeEventListener("mouseup", handleGlobalMouseUp)
-      window.removeEventListener("touchend", handleGlobalTouchEnd)
+      document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [isDragging, handleMouseUp])
+  }, [selectedCells, handleWordSubmit])
 
-  // Responsive cell size calculation - OPTIMIZED FOR MOBILE SCROLLING
+  // Responsive cell size calculation
   const getCellSize = () => {
     if (typeof window === "undefined") return 50
 
     const screenWidth = window.innerWidth
     const gridCols = grid[0]?.length || 8
-    const gridRows = grid.length || 8
 
-    // Mobile phones - Allow larger grids that can be scrolled
+    // Mobile phones
     if (screenWidth < 640) {
-      // Don't constrain by screen height - allow scrolling
-      const availableWidth = screenWidth - 32 // padding
+      const availableWidth = screenWidth - 32
       const maxCellFromWidth = Math.floor((availableWidth - gridCols * 3) / gridCols)
-      return Math.max(35, Math.min(50, maxCellFromWidth)) // Good size for mobile tapping
+      return Math.max(35, Math.min(50, maxCellFromWidth))
     }
 
     // Tablets
@@ -333,7 +276,7 @@ export function EnhancedGameBoard({
   const getCellGap = () => {
     if (typeof window === "undefined") return 4
     const screenWidth = window.innerWidth
-    if (screenWidth < 640) return 3 // Good spacing for mobile
+    if (screenWidth < 640) return 3
     if (screenWidth < 1024) return 4
     return 5
   }
@@ -341,7 +284,7 @@ export function EnhancedGameBoard({
   const getFontSize = () => {
     if (typeof window === "undefined") return "text-xl"
     const screenWidth = window.innerWidth
-    if (screenWidth < 640) return "text-lg" // Good readability on mobile
+    if (screenWidth < 640) return "text-lg"
     if (screenWidth < 1024) return "text-xl"
     return "text-2xl"
   }
@@ -349,7 +292,7 @@ export function EnhancedGameBoard({
   const getPadding = () => {
     if (typeof window === "undefined") return "p-4"
     const screenWidth = window.innerWidth
-    if (screenWidth < 640) return "p-3" // Some padding but not too much
+    if (screenWidth < 640) return "p-3"
     if (screenWidth < 1024) return "p-4"
     return "p-6"
   }
@@ -371,7 +314,24 @@ export function EnhancedGameBoard({
   const padding = getPadding()
 
   return (
-    <div className={cn("relative flex items-center justify-center w-full", padding)}>
+    <div className={cn("relative flex flex-col items-center justify-center w-full", padding)}>
+      {/* Instructions */}
+      <div className="mb-4 text-center">
+        <p className="text-sm text-muted-foreground">
+          🖱️ Click letters to select • Click last letter again to submit • Click anywhere to clear
+        </p>
+        {selectedCells.length > 0 && (
+          <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950 rounded-lg">
+            <p className="text-lg font-bold text-blue-700 dark:text-blue-300">
+              {selectedCells.map((c) => c.char).join("")}
+            </p>
+            <p className="text-xs text-blue-600 dark:text-blue-400">
+              {selectedCells.length} letter{selectedCells.length !== 1 ? "s" : ""} selected
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Combo Display */}
       {combo > 0 && (
         <div className="absolute -top-2 sm:-top-4 left-1/2 transform -translate-x-1/2 z-20">
@@ -437,7 +397,7 @@ export function EnhancedGameBoard({
           })}
         </svg>
 
-        {/* SCROLLABLE GRID - Normal scrolling allowed, selection prevents scrolling */}
+        {/* CLICK-BASED GRID - No scroll issues! */}
         <div
           ref={gridRef}
           className={cn(
@@ -451,55 +411,82 @@ export function EnhancedGameBoard({
             gridTemplateRows: `repeat(${grid.length}, ${cellSize}px)`,
             gap: `${cellGap}px`,
             width: "fit-content",
-            // Remove touchAction: "none" to allow normal scrolling
-            userSelect: "none", // Prevents text selection
-            WebkitUserSelect: "none", // Safari support
-            WebkitTouchCallout: "none", // Prevents callout on iOS
+            userSelect: "none",
+            WebkitUserSelect: "none",
+            WebkitTouchCallout: "none",
           }}
-          onMouseLeave={() => isDragging && handleMouseUp()}
-          onTouchMove={handleTouchMove}
         >
           {grid.map((row, rIdx) =>
-            row.map((cell, cIdx) => (
-              <div
-                key={`${rIdx}-${cIdx}`}
-                data-cell="true"
-                data-row={rIdx}
-                data-col={cIdx}
-                className={cn(
-                  "flex items-center justify-center font-bold cursor-pointer select-none transition-all duration-150 rounded-md sm:rounded-lg shadow-sm border border-slate-300 dark:border-slate-600",
-                  fontSize,
-                  "active:scale-95", // Better mobile feedback
-                  "hover:scale-105 hover:shadow-md hover:z-10",
-                  cell.found
-                    ? "bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg scale-105 border-green-400"
-                    : cell.selected
-                      ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg scale-105 border-blue-400"
-                      : "bg-gradient-to-br from-white to-slate-100 dark:from-slate-700 dark:to-slate-800 text-slate-800 dark:text-slate-100 hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900 dark:hover:to-blue-800 hover:border-blue-300 dark:hover:border-blue-600",
-                )}
-                style={{
-                  width: cellSize,
-                  height: cellSize,
-                  minHeight: cellSize,
-                  minWidth: cellSize,
-                  // Remove touchAction: "none" to allow scrolling when not selecting
-                  userSelect: "none",
-                  WebkitUserSelect: "none",
-                  WebkitTouchCallout: "none",
-                }}
-                onMouseDown={() => handleMouseDown(cell)}
-                onMouseEnter={() => handleMouseEnter(cell)}
-                onTouchStart={(e) => handleTouchStart(e, cell)}
-                onTouchEnd={handleTouchEnd}
-              >
-                <span className="relative z-10 font-bold tracking-wide drop-shadow-sm leading-none pointer-events-none">
-                  {cell.char}
-                </span>
-              </div>
-            )),
+            row.map((cell, cIdx) => {
+              const isSelected = selectedCells.some((sc) => sc.row === cell.row && sc.col === cell.col)
+              const selectionIndex = selectedCells.findIndex((sc) => sc.row === cell.row && sc.col === cell.col)
+              const isLastSelected = selectionIndex === selectedCells.length - 1 && selectedCells.length > 0
+
+              return (
+                <div
+                  key={`${rIdx}-${cIdx}`}
+                  className={cn(
+                    "flex items-center justify-center font-bold cursor-pointer select-none transition-all duration-150 rounded-md sm:rounded-lg shadow-sm border relative",
+                    fontSize,
+                    "hover:scale-110 hover:shadow-lg hover:z-10",
+                    "active:scale-95",
+                    cell.found
+                      ? "bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg scale-105 border-green-400"
+                      : isSelected
+                        ? isLastSelected
+                          ? "bg-gradient-to-br from-purple-500 to-pink-600 text-white shadow-lg scale-110 border-purple-400 ring-2 ring-purple-300"
+                          : "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg scale-105 border-blue-400"
+                        : "bg-gradient-to-br from-white to-slate-100 dark:from-slate-700 dark:to-slate-800 text-slate-800 dark:text-slate-100 hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900 dark:hover:to-blue-800 hover:border-blue-300 dark:hover:border-blue-600 border-slate-300 dark:border-slate-600",
+                  )}
+                  style={{
+                    width: cellSize,
+                    height: cellSize,
+                    minHeight: cellSize,
+                    minWidth: cellSize,
+                  }}
+                  onClick={() => handleCellClick(cell)}
+                >
+                  {/* Selection order number */}
+                  {isSelected && selectionIndex >= 0 && (
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 text-black text-xs font-bold rounded-full flex items-center justify-center">
+                      {selectionIndex + 1}
+                    </div>
+                  )}
+
+                  {/* Last selected indicator */}
+                  {isLastSelected && (
+                    <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                    </div>
+                  )}
+
+                  <span className="relative z-10 font-bold tracking-wide drop-shadow-sm leading-none pointer-events-none">
+                    {cell.char}
+                  </span>
+                </div>
+              )
+            }),
           )}
         </div>
       </div>
+
+      {/* Submit Button */}
+      {selectedCells.length > 0 && (
+        <div className="mt-4 flex gap-2">
+          <button
+            onClick={handleWordSubmit}
+            className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105"
+          >
+            ✓ Submit Word
+          </button>
+          <button
+            onClick={clearSelection}
+            className="px-4 py-2 bg-gradient-to-r from-gray-500 to-slate-600 hover:from-gray-600 hover:to-slate-700 text-white font-bold rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105"
+          >
+            ✕ Clear
+          </button>
+        </div>
+      )}
     </div>
   )
 }
