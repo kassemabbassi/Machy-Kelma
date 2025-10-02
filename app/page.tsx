@@ -1,5 +1,5 @@
 "use client"
-
+//AIzaSyBRY22JmVHuxHbhecj_ZATfMOHnbkkpXCE
 import { useState, useEffect, useCallback, useRef } from "react"
 import { AuthForm } from "@/components/auth-form"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -491,7 +491,7 @@ export default function HomePage() {
           <div className="flex items-center gap-1 sm:gap-3">
             {gameStarted && !gameFinished && (
               <div className="flex items-center gap-1 sm:gap-3">
-                {/* Compact Timer for Mobile */}
+-                {/* Compact Timer for Mobile */}
                 <div className="flex items-center gap-1">
                   <Timer
                     className={`w-3 h-3 sm:w-4 sm:h-4 ${isTimeRunningOut ? "text-red-500 animate-bounce" : "text-blue-500"}`}
