@@ -23,6 +23,8 @@ WHERE id IN (
 
 -- Add indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_scores_user_difficulty_score ON scores(user_id, difficulty, score DESC);
+
+
 CREATE INDEX IF NOT EXISTS idx_scores_difficulty_score_desc ON scores(difficulty, score DESC);
 
 -- Update any NULL difficulty values to 'easy' (if any exist)
