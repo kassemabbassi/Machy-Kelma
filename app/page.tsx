@@ -21,7 +21,7 @@ import { EnhancedGameOverModal } from "@/components/enhanced-game-over-modal"
 import { InGameControls } from "@/components/in-game-controls"
 import { AchievementNotification } from "@/components/achievement-notification"
 import { generateGrid, placeWordsInGrid } from "@/lib/game-utils"
-import { supabase } from "@/lib/supabase"
+import { getCurrentUser, saveBestScore, saveCurrentUser } from "@/lib/local-data"
 import { WordHistoryManager } from "@/lib/word-history"
 import { soundManager } from "@/lib/sound-manager"
 import { AchievementSystem, type Achievement } from "@/lib/achievement-system"
@@ -56,6 +56,10 @@ export default function HomePage() {
   const [showAchievementNotification, setShowAchievementNotification] = useState(false)
 
   const scoreSavedRef = useRef(false)
+
+  useEffect(() => {
+    setCurrentUser(getCurrentUser())
+  }, [])
   const gameStateRef = useRef({
     foundWords: [] as string[],
     score: 0,
@@ -86,6 +90,7 @@ export default function HomePage() {
   // REMOVED: Body scroll prevention - allow normal scrolling
 
   const handleLogin = useCallback((user: User | null) => {
+    saveCurrentUser(user)
     setCurrentUser(user)
   }, [])
 
@@ -206,58 +211,10 @@ export default function HomePage() {
       setShowGameOver(true)
 
       // Save score logic
-      const isGuestUser =
-        currentUser &&
-        (currentUser.username.toLowerCase().includes("guest") ||
-          currentUser.id.startsWith("guest-") ||
-          currentUser.username === "Guest Player")
-
-      if (currentUser && !isGuestUser && !scoreSavedRef.current && finalScore > 0) {
+      if (currentUser && !scoreSavedRef.current && finalScore > 0) {
         scoreSavedRef.current = true
 
-        const saveScore = async () => {
-          try {
-            const { data: existingScore, error: fetchError } = await supabase
-              .from("scores")
-              .select("id, score")
-              .eq("user_id", currentUser.id)
-              .eq("difficulty", gameConfig.difficulty)
-              .order("score", { ascending: false })
-              .limit(1)
-              .single()
-
-            if (fetchError && fetchError.code !== "PGRST116") {
-              throw fetchError
-            }
-
-            if (existingScore && existingScore.score >= finalScore) {
-              return
-            }
-
-            if (existingScore) {
-              const { error: updateError } = await supabase
-                .from("scores")
-                .update({
-                  score: finalScore,
-                  created_at: new Date().toISOString(),
-                })
-                .eq("id", existingScore.id)
-
-              if (updateError) throw updateError
-            } else {
-              const { error: insertError } = await supabase.from("scores").insert({
-                user_id: currentUser.id,
-                score: finalScore,
-                difficulty: gameConfig.difficulty,
-              })
-
-              if (insertError) throw insertError
-            }
-          } catch (err) {
-            console.error("Unexpected error saving score:", err)
-          }
-        }
-        saveScore()
+        saveBestScore(currentUser, finalScore, gameConfig.difficulty)
       }
     },
     [gameConfig.difficulty, currentUser, gameFinished, gameStartTime],

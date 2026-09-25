@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { getLeaderboard } from "@/lib/local-data"
 import type { ScoreEntry, User } from "@/types/game"
 import { DIFFICULTIES } from "@/types/game"
 import { Loader2, Trophy, Medal, X, Crown } from "lucide-react"
@@ -29,63 +29,12 @@ export function Leaderboard({ currentUser, isOpen, onClose }: LeaderboardProps) 
   const fetchLeaderboards = async () => {
     setLoading(true)
     setError(null)
-
-    try {
-      const difficultyLeaderboards: DifficultyLeaderboard = {}
-
-      // Fetch leaderboard for each difficulty
-      for (const difficulty of DIFFICULTIES) {
-        // Get all scores for this difficulty, grouped by user with their highest score
-        const { data, error: fetchError } = await supabase
-          .from("scores")
-          .select(`
-          user_id,
-          score,
-          difficulty,
-          created_at,
-          users (
-            username
-          )
-        `)
-          .eq("difficulty", difficulty.id)
-          .order("score", { ascending: false })
-
-        if (fetchError) {
-          throw fetchError
-        }
-
-        // Group by user and keep only the highest score per user
-        const userBestScores = new Map()
-        data.forEach((item: any) => {
-          const userId = item.user_id
-          const username = item.users.username
-
-          if (!userBestScores.has(userId) || userBestScores.get(userId).score < item.score) {
-            userBestScores.set(userId, {
-              id: `${userId}-${difficulty.id}`, // Unique ID for React key
-              score: item.score,
-              created_at: item.created_at,
-              username: username,
-              difficulty: item.difficulty,
-            })
-          }
-        })
-
-        // Convert back to array, sort by score, and limit to top 5
-        const formattedData: ScoreEntry[] = Array.from(userBestScores.values())
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 5)
-
-        difficultyLeaderboards[difficulty.id] = formattedData
-      }
-
-      setLeaderboards(difficultyLeaderboards)
-    } catch (err) {
-      console.error("Error fetching leaderboards:", err)
-      setError("Failed to load leaderboards.")
-    } finally {
-      setLoading(false)
+    const difficultyLeaderboards: DifficultyLeaderboard = {}
+    for (const difficulty of DIFFICULTIES) {
+      difficultyLeaderboards[difficulty.id] = getLeaderboard(difficulty.id)
     }
+    setLeaderboards(difficultyLeaderboards)
+    setLoading(false)
   }
 
   useEffect(() => {

@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Loader2, Sparkles, UserIcon, UserCheck } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { Sparkles, UserIcon, UserCheck } from "lucide-react"
+import { getOrCreateUser, saveCurrentUser } from "@/lib/local-data"
 import type { GameUser } from "@/types/game"
 import { ThemeToggle } from "./theme-toggle"
 
@@ -16,51 +16,12 @@ interface AuthFormProps {
 
 export function AuthForm({ onLogin }: AuthFormProps) {
   const [username, setUsername] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleLogin = async (isGuest: boolean) => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      let user: GameUser | null = null
-
-      if (isGuest) {
-        user = { id: `guest-${Date.now()}`, username: "Guest Player" }
-      } else {
-        const { data: existingUsers, error: fetchError } = await supabase
-          .from("users")
-          .select("id, username")
-          .eq("username", username)
-          .single()
-
-        if (fetchError && fetchError.code !== "PGRST116") {
-          throw fetchError
-        }
-
-        if (existingUsers) {
-          user = existingUsers
-        } else {
-          const { data: newUser, error: insertError } = await supabase
-            .from("users")
-            .insert({ username })
-            .select("id, username")
-            .single()
-
-          if (insertError) {
-            throw insertError
-          }
-          user = newUser
-        }
-      }
-      onLogin(user)
-    } catch (err) {
-      console.error("Login error:", err)
-      setError((err as Error).message || "An unexpected error occurred during login.")
-    } finally {
-      setLoading(false)
-    }
+  const handleLogin = (isGuest: boolean) => {
+    const user = isGuest
+      ? { id: `guest-${Date.now()}`, username: "Guest Player" }
+      : getOrCreateUser(username)
+    saveCurrentUser(user)
+    onLogin(user)
   }
 
   return (
@@ -109,28 +70,17 @@ export function AuthForm({ onLogin }: AuthFormProps) {
                   placeholder="Enter your name"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  disabled={loading}
                   className="pl-10 h-12 bg-white/50 dark:bg-gray-800/50 border-blue-200 dark:border-blue-800 focus:border-blue-400 dark:focus:border-blue-600"
                 />
               </div>
             </div>
 
-            {error && (
-              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-              </div>
-            )}
-
             <Button
               className="w-full h-12 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
               onClick={() => handleLogin(false)}
-              disabled={loading || !username.trim()}
+              disabled={!username.trim()}
             >
-              {loading && !username.trim() ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <UserCheck className="mr-2 h-4 w-4" />
-              )}
+              <UserCheck className="mr-2 h-4 w-4" />
               Start Playing
             </Button>
 
@@ -147,13 +97,8 @@ export function AuthForm({ onLogin }: AuthFormProps) {
               variant="outline"
               className="w-full h-12 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-medium bg-transparent"
               onClick={() => handleLogin(true)}
-              disabled={loading}
             >
-              {loading && username.trim() ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <UserIcon className="mr-2 h-4 w-4" />
-              )}
+              <UserIcon className="mr-2 h-4 w-4" />
               Continue as Guest
             </Button>
           </CardContent>
