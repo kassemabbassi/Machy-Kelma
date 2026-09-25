@@ -1,37 +1,28 @@
 "use server"
 
-import type { Word, Difficulty } from "@/types/game"
+import { DIFFICULTIES, type Word, type Difficulty } from "@/types/game"
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
+const GEMINI_MODEL = "models/gemini-2.5-flash"
 
 if (!GEMINI_API_KEY) {
   console.warn("GEMINI_API_KEY is not set. AI features will not work.")
 }
 
-// Stable model (don’t overthink it)
-const GEMINI_MODEL = "models/gemini-2.5-flash"
+type GeneratedWord = { word?: unknown; clue?: unknown }
 
-/**
- * Fix partially truncated JSON returned by Gemini
- */
-function fixTruncatedJson(input: string) {
-  let cleaned = input.trim()
+function parseGeneratedWords(text: string): GeneratedWord[] | null {
+  const withoutFence = text.replace(/^\s*```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "")
+  const start = withoutFence.indexOf("[")
+  const end = withoutFence.lastIndexOf("]")
+  if (start < 0 || end < start) return null
 
-  const firstBracket = cleaned.indexOf("[")
-  const lastBrace = cleaned.lastIndexOf("}")
-
-  if (firstBracket === -1 || lastBrace === -1) {
-    return cleaned
+  try {
+    const parsed: unknown = JSON.parse(withoutFence.slice(start, end + 1))
+    return Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
   }
-
-  cleaned = cleaned.slice(firstBracket, lastBrace + 1)
-
-  // Ensure closing array bracket exists
-  if (!cleaned.endsWith("]")) {
-    cleaned += "]"
-  }
-
-  return cleaned
 }
 
 export async function generateGameContent(
@@ -43,133 +34,73 @@ export async function generateGameContent(
     return { words: [], error: "AI API key is not configured." }
   }
 
-  const recentWordsText =
-    recentWords.length > 0
-      ? `\nIMPORTANT: Avoid these words: ${recentWords.join(", ")}`
-      : ""
+  const level = DIFFICULTIES.find((item) => item.id === difficulty)
+  if (!level) return { words: [], error: "Invalid difficulty selected." }
 
-  const prompt = `
-Generate EXACTLY 15 unique words related to the theme "${theme}" with difficulty "${difficulty}".
-
-STRICT RULES:
-- Each word MUST be 5 characters or less
-- Each clue MUST be max 8 words
-- Return ONLY valid JSON
-- No markdown, no explanation, no extra text
-- Do NOT include the word inside the clue
-- Output must be a JSON array with "word" and "clue"
-${recentWordsText}
-
-OUTPUT FORMAT ONLY:
-[
-  { "word": "CLOUD", "clue": "Fluffy sky formation" },
-  { "word": "CODE", "clue": "Instructions for computers" }
-]
-`
-
-  async function callGemini(retry = 2): Promise<string | null> {
-    for (let i = 0; i <= retry; i++) {
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              contents: [
-                {
-                  role: "user",
-                  parts: [{ text: prompt }],
-                },
-              ],
-              generationConfig: {
-                maxOutputTokens: 2048,
-                temperature: 0.3,
-              },
-            }),
-          },
-        )
-
-        const data = await response.json()
-
-        console.log("🔥 Gemini raw response:", JSON.stringify(data, null, 2))
-
-        if (!response.ok) {
-          console.error("Gemini API error:", data)
-          continue
-        }
-
-        if (data?.promptFeedback?.blockReason) {
-          return null
-        }
-
-        const candidate = data?.candidates?.[0]
-        const parts = candidate?.content?.parts
-
-        if (!parts || parts.length === 0) continue
-
-        return parts.map((p: any) => p.text ?? "").join("")
-      } catch (err) {
-        console.error("Gemini request failed:", err)
-        if (i === retry) return null
-      }
-    }
-
-    return null
-  }
+  const wordCount = level.wordCount
+  const recentWordsText = recentWords.length
+    ? ` Avoid these recent words: ${recentWords.join(", ")}.`
+    : ""
+  const prompt = `Generate exactly ${wordCount} unique English words for a word search about ${JSON.stringify(theme)} at the ${difficulty} difficulty level. Each word must be 2 to 5 letters and use A-Z only. Give each word a short clue of at most 8 words that does not contain the answer. Return only a JSON array of objects with string fields \"word\" and \"clue\". Do not include markdown or other text.${recentWordsText}`
 
   try {
-    const textContent = await callGemini()
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            maxOutputTokens: 2048,
+            temperature: 0.3,
+            responseMimeType: "application/json",
+          },
+        }),
+      },
+    )
 
-    if (!textContent) {
+    const data = await response.json()
+    if (!response.ok) {
+      console.error("Gemini API error:", data)
+      return { words: [], error: "AI word generation failed. Please try again." }
+    }
+    if (data?.promptFeedback?.blockReason) {
+      return { words: [], error: "AI could not generate words for this theme." }
+    }
+
+    const candidate = data?.candidates?.[0]
+    if (candidate?.finishReason === "MAX_TOKENS") {
+      return { words: [], error: "AI response was incomplete. Please try again." }
+    }
+    const text = candidate?.content?.parts?.map((part: { text?: string }) => part.text ?? "").join("")
+    const generated = typeof text === "string" ? parseGeneratedWords(text) : null
+    if (!generated) {
+      return { words: [], error: "AI returned an invalid word list. Please try again." }
+    }
+
+    const seen = new Set<string>()
+    const words: Word[] = []
+    for (const item of generated) {
+      if (typeof item?.word !== "string" || typeof item?.clue !== "string") continue
+      const word = item.word.toUpperCase().replace(/[^A-Z]/g, "")
+      const clue = item.clue.trim()
+      if (word.length < 2 || word.length > 5 || !clue || seen.has(word)) continue
+      seen.add(word)
+      words.push({ word, definition: clue, found: false })
+      if (words.length === wordCount) break
+    }
+
+    if (words.length !== wordCount) {
       return {
         words: [],
-        error: "No content received from AI.",
+        error: `AI generated ${words.length} valid unique words; ${wordCount} are required for ${level.name}. Please try again.`,
       }
     }
-
-    let jsonString = textContent
-
-    const match = textContent.match(/```json\s*([\s\S]*?)```/)
-    if (match) {
-      jsonString = match[1]
-    }
-
-    jsonString = fixTruncatedJson(jsonString)
-
-    let parsed: { word: string; clue: string }[]
-
-    try {
-      parsed = JSON.parse(jsonString)
-    } catch (err) {
-      console.error("JSON parse failed:", jsonString)
-      return {
-        words: [],
-        error: "AI returned invalid JSON (truncated or malformed).",
-      }
-    }
-
-    const words: Word[] = parsed
-      .filter(
-        (w) =>
-          w.word &&
-          w.clue &&
-          typeof w.word === "string" &&
-          w.word.length <= 5,
-      )
-      .map((item) => ({
-        word: item.word.toUpperCase().replace(/[^A-Z]/g, ""),
-        definition: item.clue,
-        found: false,
-      }))
 
     return { words }
   } catch (error) {
-    return {
-      words: [],
-      error: `Unexpected error: ${(error as Error).message}`,
-    }
+    console.error("Gemini request failed:", error)
+    return { words: [], error: "Could not reach the AI service. Please try again." }
   }
 }

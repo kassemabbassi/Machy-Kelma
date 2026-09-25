@@ -1,5 +1,4 @@
 "use client"
-//AIzaSyBRY22JmVHuxHbhecj_ZATfMOHnbkkpXCE
 import { useState, useEffect, useCallback, useRef } from "react"
 import { AuthForm } from "@/components/auth-form"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -276,7 +275,12 @@ export default function HomePage() {
         return
       }
 
-      const shuffledWords = words.sort(() => Math.random() - 0.5)
+      if (words.length !== selectedDifficulty.wordCount) {
+        setGameError(`The AI returned ${words.length} words, but ${selectedDifficulty.name} requires ${selectedDifficulty.wordCount}. Please try again.`)
+        return
+      }
+
+      const shuffledWords = [...words].sort(() => Math.random() - 0.5)
       const limitedWords = shuffledWords.slice(0, selectedDifficulty.wordCount)
 
       WordHistoryManager.addWords(
@@ -285,10 +289,15 @@ export default function HomePage() {
       )
 
       let newGrid = generateGrid(selectedDifficulty.gridSize.rows, selectedDifficulty.gridSize.cols)
-      placeWordsInGrid(
+      const placedWords = placeWordsInGrid(
         newGrid,
         limitedWords.map((w) => w.word),
       )
+
+      if (placedWords.length !== selectedDifficulty.wordCount) {
+        setGameError("Could not fit all words in the game grid. Please try again.")
+        return
+      }
 
       newGrid = newGrid.map((row, rIdx) =>
         row.map((cell, cIdx) => ({
